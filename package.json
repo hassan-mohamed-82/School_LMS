@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc ",
     "start": "node dist/src/server.js",
+    "seed": "ts-node src/seeds/index.ts",
     "generate-db": "npx drizzle-kit generate",
     "migrate-db": "npx drizzle-kit push"
   },
@@ -44,7 +45,8 @@
     "resend": "^6.0.1",
     "sib-api-v3-sdk": "^8.5.0",
     "socket.io": "^4.8.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/axios": "^0.9.36",

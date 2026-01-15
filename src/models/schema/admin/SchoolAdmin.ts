@@ -9,7 +9,7 @@ export interface ISchoolAdmin extends Document {
   email: string;
   password: string;
   phone?: string;
-  type: 'owner' | 'admin';
+  type: 'organizer' | 'admin';
   role?: mongoose.Types.ObjectId;
   avatar?: string;
   status: 'active' | 'inactive';
@@ -31,12 +31,6 @@ const schoolAdminSchema = new Schema<ISchoolAdmin>(
       required: [true, 'الاسم مطلوب'],
       trim: true,
     },
-    email: {
-      type: String,
-      required: [true, 'البريد الإلكتروني مطلوب'],
-      lowercase: true,
-      trim: true,
-    },
     password: {
       type: String,
       required: [true, 'كلمة المرور مطلوبة'],
@@ -48,7 +42,7 @@ const schoolAdminSchema = new Schema<ISchoolAdmin>(
     },
     type: {
       type: String,
-      enum: ['owner', 'admin'],
+      enum: ['organizer', 'admin'],
       default: 'admin',
     },
     role: {
@@ -63,9 +57,7 @@ const schoolAdminSchema = new Schema<ISchoolAdmin>(
       enum: ['active', 'inactive'],
       default: 'active',
     },
-    lastLoginAt: {
-      type: Date,
-    },
+
   },
   {
     timestamps: true,

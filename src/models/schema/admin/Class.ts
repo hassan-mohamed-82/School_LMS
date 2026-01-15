@@ -7,9 +7,7 @@ export interface IClass extends Document {
   school: mongoose.Types.ObjectId;
   grade: mongoose.Types.ObjectId;
   name: string;
-  nameEn?: string;
-  capacity: number;
-  teacher?: mongoose.Types.ObjectId;
+  capacity?: number;
   status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -33,17 +31,8 @@ const classSchema = new Schema<IClass>(
       required: [true, 'اسم الفصل مطلوب'],
       trim: true,
     },
-    nameEn: {
-      type: String,
-      trim: true,
-    },
     capacity: {
       type: Number,
-      default: 30,
-    },
-    teacher: {
-      type: Schema.Types.ObjectId,
-      ref: 'Teacher',
     },
     status: {
       type: String,
@@ -57,7 +46,8 @@ const classSchema = new Schema<IClass>(
 );
 
 // Indexes
-classSchema.index({ school: 1 });
-classSchema.index({ school: 1, grade: 1 });
+classSchema.index({ school: 1, grade: 1, name: 1 }, { unique: true });
+classSchema.index({ school: 1, status: 1 });
+classSchema.index({ grade: 1 });
 
 export default mongoose.model<IClass>('Class', classSchema);

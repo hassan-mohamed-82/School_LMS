@@ -45,7 +45,5 @@ const subjectSchema = new Schema<ISubject>(
   }
 );
 
-// Indexes
-subjectSchema.index({ school: 1 });
 
 export default mongoose.model<ISubject>('Subject', subjectSchema);

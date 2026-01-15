@@ -1,0 +1,17 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const teatcher_1 = __importDefault(require("./teatcher"));
+const auth_1 = __importDefault(require("./auth"));
+const profile_1 = __importDefault(require("./profile"));
+const authenticated_1 = require("../../middlewares/authenticated");
+const authorized_1 = require("../../middlewares/authorized");
+const router = express_1.default.Router();
+router.use("/auth", auth_1.default);
+router.use(authenticated_1.authenticated, (0, authorized_1.authorizeRoles)("admin", "organizer"));
+router.use("/teacher", teatcher_1.default);
+router.use("/profile", profile_1.default);
+exports.default = router;

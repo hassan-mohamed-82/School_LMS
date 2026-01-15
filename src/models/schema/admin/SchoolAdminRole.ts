@@ -3,6 +3,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
+// Available Modules & Actions for School Admin Roles
+
 // Types
 export interface IAction {
   id: string;
@@ -74,7 +76,7 @@ const schoolAdminRoleSchema = new Schema<ISchoolAdminRole>(
 );
 
 // Indexes
-schoolAdminRoleSchema.index({ school: 1 });
 schoolAdminRoleSchema.index({ school: 1, name: 1 }, { unique: true });
+schoolAdminRoleSchema.index({ school: 1, status: 1 });
 
 export default mongoose.model<ISchoolAdminRole>('SchoolAdminRole', schoolAdminRoleSchema);

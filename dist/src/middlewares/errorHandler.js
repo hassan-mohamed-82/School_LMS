@@ -4,14 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
-const Errors_1 = require("../Errors");
+const appError_1 = require("../Errors/appError");
 const http_status_codes_1 = require("http-status-codes");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const errorHandler = (err, req, res, next) => {
     let statusCode = http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR;
     let message = err.message || "Internal Server Error";
     let details = err.message;
-    if (err instanceof Errors_1.AppError) {
+    if (err instanceof appError_1.AppError) {
         statusCode = err.statusCode;
         message = err.message;
         details = err.details;

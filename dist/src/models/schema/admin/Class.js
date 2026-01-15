@@ -52,17 +52,8 @@ const classSchema = new mongoose_1.Schema({
         required: [true, 'اسم الفصل مطلوب'],
         trim: true,
     },
-    nameEn: {
-        type: String,
-        trim: true,
-    },
     capacity: {
         type: Number,
-        default: 30,
-    },
-    teacher: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Teacher',
     },
     status: {
         type: String,
@@ -73,6 +64,7 @@ const classSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // Indexes
-classSchema.index({ school: 1 });
-classSchema.index({ school: 1, grade: 1 });
+classSchema.index({ school: 1, grade: 1, name: 1 }, { unique: true });
+classSchema.index({ school: 1, status: 1 });
+classSchema.index({ grade: 1 });
 exports.default = mongoose_1.default.model('Class', classSchema);

@@ -28,10 +28,6 @@ const periodSchema = new Schema<IPeriod>(
       required: [true, 'اسم الحصة مطلوب'],
       trim: true,
     },
-    nameEn: {
-      type: String,
-      trim: true,
-    },
     startTime: {
       type: String,
       required: [true, 'وقت البداية مطلوب'],
@@ -55,8 +51,5 @@ const periodSchema = new Schema<IPeriod>(
   }
 );
 
-// Indexes
-periodSchema.index({ school: 1 });
-periodSchema.index({ school: 1, sortOrder: 1 });
 
 export default mongoose.model<IPeriod>('Period', periodSchema);

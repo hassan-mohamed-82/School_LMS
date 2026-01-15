@@ -1,5 +1,5 @@
 import { Response, Request, NextFunction, ErrorRequestHandler } from "express";
-import { AppError } from "../Errors";
+import { AppError } from "../Errors/appError";
 import { StatusCodes } from "http-status-codes";
 import Jwt from "jsonwebtoken";
 import { IErrorResponse } from "../utils/response";

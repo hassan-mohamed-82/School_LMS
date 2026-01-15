@@ -51,10 +51,6 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         required: [true, 'السعر الشهري مطلوب'],
         min: 0,
     },
-    yearlyPrice: {
-        type: Number,
-        min: 0,
-    },
     maxStudents: {
         type: Number,
         required: [true, 'الحد الأقصى للطلاب مطلوب'],

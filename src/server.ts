@@ -9,7 +9,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { connectDB } from "./models/connection";
 import path from "path";
-import { startLateCheckJob, checkLateBorrows } from "./utils/checkLateBorrows";
+// import { startLateCheckJob, checkLateBorrows } from "./utils/checkLateBorrows";
 
 dotenv.config();
 
@@ -38,8 +38,8 @@ const server = http.createServer(app);
 const startServer = async () => {
   await connectDB();
   
-  startLateCheckJob();      // ← يجدول الـ job كل يوم
-  await checkLateBorrows(); // ← يشتغل فوراً أول مرة
+  // startLateCheckJob();      // ← يجدول الـ job كل يوم
+  // await checkLateBorrows(); // ← يشتغل فوراً أول مرة
   
   server.listen(3000, () => {
     console.log("Server is running on http://localhost:3000");

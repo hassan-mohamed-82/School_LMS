@@ -47,12 +47,6 @@ const schoolAdminSchema = new mongoose_1.Schema({
         required: [true, 'الاسم مطلوب'],
         trim: true,
     },
-    email: {
-        type: String,
-        required: [true, 'البريد الإلكتروني مطلوب'],
-        lowercase: true,
-        trim: true,
-    },
     password: {
         type: String,
         required: [true, 'كلمة المرور مطلوبة'],
@@ -64,7 +58,7 @@ const schoolAdminSchema = new mongoose_1.Schema({
     },
     type: {
         type: String,
-        enum: ['owner', 'admin'],
+        enum: ['organizer', 'admin'],
         default: 'admin',
     },
     role: {
@@ -78,9 +72,6 @@ const schoolAdminSchema = new mongoose_1.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active',
-    },
-    lastLoginAt: {
-        type: Date,
     },
 }, {
     timestamps: true,

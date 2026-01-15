@@ -63,6 +63,4 @@ const subjectSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Indexes
-subjectSchema.index({ school: 1 });
 exports.default = mongoose_1.default.model('Subject', subjectSchema);

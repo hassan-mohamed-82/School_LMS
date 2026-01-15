@@ -7,7 +7,6 @@ export interface ISubscriptionPlan extends Document {
   name: string;
   nameEn?: string;
   price: number;
-  yearlyPrice?: number;
   maxStudents: number;
   maxTeachers?: number;
   maxAdmins: number;
@@ -32,10 +31,6 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan>(
     price: {
       type: Number,
       required: [true, 'السعر الشهري مطلوب'],
-      min: 0,
-    },
-    yearlyPrice: {
-      type: Number,
       min: 0,
     },
     maxStudents: {

@@ -14,7 +14,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const helmet_1 = __importDefault(require("helmet"));
 const connection_1 = require("./models/connection");
 const path_1 = __importDefault(require("path"));
-const checkLateBorrows_1 = require("./utils/checkLateBorrows");
+// import { startLateCheckJob, checkLateBorrows } from "./utils/checkLateBorrows";
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
@@ -33,8 +33,8 @@ const server = http_1.default.createServer(app);
 // ✅ كل حاجة هنا
 const startServer = async () => {
     await (0, connection_1.connectDB)();
-    (0, checkLateBorrows_1.startLateCheckJob)(); // ← يجدول الـ job كل يوم
-    await (0, checkLateBorrows_1.checkLateBorrows)(); // ← يشتغل فوراً أول مرة
+    // startLateCheckJob();      // ← يجدول الـ job كل يوم
+    // await checkLateBorrows(); // ← يشتغل فوراً أول مرة
     server.listen(3000, () => {
         console.log("Server is running on http://localhost:3000");
     });

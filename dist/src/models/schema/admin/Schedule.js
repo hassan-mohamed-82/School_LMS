@@ -42,6 +42,11 @@ const scheduleSchema = new mongoose_1.Schema({
         ref: 'School',
         required: true,
     },
+    grade: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Grade',
+        required: [true, 'المرحلة مطلوبة'],
+    },
     class: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Class',
@@ -67,6 +72,10 @@ const scheduleSchema = new mongoose_1.Schema({
         enum: [0, 1, 2, 3, 4, 5, 6],
         required: [true, 'اليوم مطلوب'],
     },
+    academicYear: {
+        type: String,
+        required: [true, 'العام الدراسي مطلوب'],
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],
@@ -75,9 +84,4 @@ const scheduleSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Indexes
-scheduleSchema.index({ school: 1 });
-scheduleSchema.index({ school: 1, class: 1, dayOfWeek: 1 });
-scheduleSchema.index({ school: 1, teacher: 1, dayOfWeek: 1 });
-scheduleSchema.index({ class: 1, period: 1, dayOfWeek: 1 }, { unique: true });
 exports.default = mongoose_1.default.model('Schedule', scheduleSchema);

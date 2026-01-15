@@ -75,6 +75,6 @@ const schoolAdminRoleSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // Indexes
-schoolAdminRoleSchema.index({ school: 1 });
 schoolAdminRoleSchema.index({ school: 1, name: 1 }, { unique: true });
+schoolAdminRoleSchema.index({ school: 1, status: 1 });
 exports.default = mongoose_1.default.model('SchoolAdminRole', schoolAdminRoleSchema);

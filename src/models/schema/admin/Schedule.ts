@@ -5,11 +5,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 // Types
 export interface ISchedule extends Document {
   school: mongoose.Types.ObjectId;
+  grade: mongoose.Types.ObjectId;
   class: mongoose.Types.ObjectId;
   subject: mongoose.Types.ObjectId;
   teacher: mongoose.Types.ObjectId;
   period: mongoose.Types.ObjectId;
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  academicYear: string;
   status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +24,11 @@ const scheduleSchema = new Schema<ISchedule>(
       type: Schema.Types.ObjectId,
       ref: 'School',
       required: true,
+    },
+    grade: {
+      type: Schema.Types.ObjectId,
+      ref: 'Grade',
+      required: [true, 'المرحلة مطلوبة'],
     },
     class: {
       type: Schema.Types.ObjectId,
@@ -48,6 +55,10 @@ const scheduleSchema = new Schema<ISchedule>(
       enum: [0, 1, 2, 3, 4, 5, 6],
       required: [true, 'اليوم مطلوب'],
     },
+    academicYear: {
+      type: String,
+      required: [true, 'العام الدراسي مطلوب'],
+    },
     status: {
       type: String,
       enum: ['active', 'inactive'],
@@ -59,10 +70,5 @@ const scheduleSchema = new Schema<ISchedule>(
   }
 );
 
-// Indexes
-scheduleSchema.index({ school: 1 });
-scheduleSchema.index({ school: 1, class: 1, dayOfWeek: 1 });
-scheduleSchema.index({ school: 1, teacher: 1, dayOfWeek: 1 });
-scheduleSchema.index({ class: 1, period: 1, dayOfWeek: 1 }, { unique: true });
 
 export default mongoose.model<ISchedule>('Schedule', scheduleSchema);
