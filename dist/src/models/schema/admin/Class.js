@@ -63,8 +63,4 @@ const classSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Indexes
-classSchema.index({ school: 1, grade: 1, name: 1 }, { unique: true });
-classSchema.index({ school: 1, status: 1 });
-classSchema.index({ grade: 1 });
 exports.default = mongoose_1.default.model('Class', classSchema);

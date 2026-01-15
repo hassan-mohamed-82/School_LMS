@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeClass = exports.updateClass = exports.createClass = exports.getOneClass = exports.getAllClasses = void 0;
+exports.selection = exports.removeClass = exports.updateClass = exports.createClass = exports.getOneClass = exports.getAllClasses = void 0;
 const Class_1 = __importDefault(require("../../models/schema/admin/Class"));
 require("../../models/schema/admin/Grade"); // Register Grade schema for populate
 const Errors_1 = require("../../Errors");
 const response_1 = require("../../utils/response");
 const BadRequest_1 = require("../../Errors/BadRequest");
+const Grade_1 = __importDefault(require("../../models/schema/admin/Grade"));
 // ═══════════════════════════════════════════════════════════════
 // 📋 GET ALL CLASSES
 // ═══════════════════════════════════════════════════════════════
@@ -64,7 +65,7 @@ const createClass = async (req, res) => {
         status: status || 'active',
     });
     // Populate grade for response
-    await classDoc.populate('grade', 'name nameEn');
+    await classDoc.populate('gradeId', 'name nameEn');
     return (0, response_1.SuccessResponse)(res, { class: classDoc, message: 'تم إضافة الفصل بنجاح' }, 201);
 };
 exports.createClass = createClass;
@@ -104,7 +105,7 @@ const updateClass = async (req, res) => {
         updateData.capacity = capacity;
     if (status !== undefined)
         updateData.status = status;
-    const classDoc = await Class_1.default.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('grade', 'name nameEn');
+    const classDoc = await Class_1.default.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('gradeId', 'name nameEn');
     return (0, response_1.SuccessResponse)(res, { class: classDoc, message: 'تم تحديث الفصل بنجاح' });
 };
 exports.updateClass = updateClass;
@@ -124,3 +125,8 @@ const removeClass = async (req, res) => {
     return (0, response_1.SuccessResponse)(res, { class: classDoc, message: 'تم حذف الفصل بنجاح' });
 };
 exports.removeClass = removeClass;
+const selection = async (req, res) => {
+    const grade = await Grade_1.default.find({ school: req.user?.schoolId });
+    (0, response_1.SuccessResponse)(res, { grade });
+};
+exports.selection = selection;

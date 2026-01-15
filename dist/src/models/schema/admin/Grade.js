@@ -63,7 +63,4 @@ const gradeSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Indexes
-gradeSchema.index({ school: 1 });
-gradeSchema.index({ school: 1, sortOrder: 1 });
 exports.default = mongoose_1.default.model('Grade', gradeSchema);

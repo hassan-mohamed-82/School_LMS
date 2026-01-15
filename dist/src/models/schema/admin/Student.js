@@ -42,17 +42,17 @@ const studentSchema = new mongoose_1.Schema({
         ref: 'School',
         required: true,
     },
-    parent: {
+    parentId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Parent',
         required: [true, 'ولي الأمر مطلوب'],
     },
-    grade: {
+    gradeId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Grade',
         required: [true, 'المرحلة مطلوبة'],
     },
-    class: {
+    classId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Class',
         required: [true, 'الفصل مطلوب'],
@@ -80,7 +80,7 @@ const studentSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'inactive', 'graduated', 'transferred'],
+        enum: ['active', 'inactive'],
         default: 'active',
     },
 }, {
