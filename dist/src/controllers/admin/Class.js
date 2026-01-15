@@ -22,7 +22,7 @@ const getAllClasses = async (req, res) => {
     if (status)
         query.status = status;
     const classes = await Class_1.default.find(query)
-        .populate('grade', 'name nameEn')
+        .populate('gradeId', 'name nameEn')
         .sort({ createdAt: -1 });
     return (0, response_1.SuccessResponse)(res, { classes });
 };
