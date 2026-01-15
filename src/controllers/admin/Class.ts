@@ -4,6 +4,7 @@ import '../../models/schema/admin/Grade'; // Register Grade schema for populate
 import { NotFound } from '../../Errors';
 import { SuccessResponse } from '../../utils/response';
 import { BadRequest } from '../../Errors/BadRequest';
+import Grade from '../../models/schema/admin/Grade';
 
 // ═══════════════════════════════════════════════════════════════
 // 📋 GET ALL CLASSES
@@ -143,3 +144,11 @@ export const removeClass = async (req: Request, res: Response) => {
 
     return SuccessResponse(res, { class: classDoc, message: 'تم حذف الفصل بنجاح' });
 };
+
+
+export const selection=async(req:Request,res:Response)=>{
+   
+    const grade=await Grade.find({school:req.user?.schoolId}) 
+
+    SuccessResponse(res,{grade})
+}

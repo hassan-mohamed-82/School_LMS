@@ -3,13 +3,13 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 // Types
-export type StudentStatus = 'active' | 'inactive' | 'graduated' | 'transferred';
+export type StudentStatus = 'active' | 'inactive'  ;
 
 export interface IStudent extends Document {
     school: mongoose.Types.ObjectId;
-    parent: mongoose.Types.ObjectId;
-    grade: mongoose.Types.ObjectId;
-    class: mongoose.Types.ObjectId;
+    parentId: mongoose.Types.ObjectId;
+    gradeId: mongoose.Types.ObjectId;
+    classId: mongoose.Types.ObjectId;
     name: string;
     nameEn?: string;
     nationalId?: string;
@@ -32,17 +32,17 @@ const studentSchema = new Schema<IStudent>(
             ref: 'School',
             required: true,
         },
-        parent: {
+        parentId: {
             type: Schema.Types.ObjectId,
             ref: 'Parent',
             required: [true, 'ولي الأمر مطلوب'],
         },
-        grade: {
+        gradeId: {
             type: Schema.Types.ObjectId,
             ref: 'Grade',
             required: [true, 'المرحلة مطلوبة'],
         },
-        class: {
+        classId: {
             type: Schema.Types.ObjectId,
             ref: 'Class',
             required: [true, 'الفصل مطلوب'],
@@ -70,7 +70,7 @@ const studentSchema = new Schema<IStudent>(
         },
         status: {
             type: String,
-            enum: ['active', 'inactive', 'graduated', 'transferred'],
+            enum: ['active', 'inactive'],
             default: 'active',
         },
     },

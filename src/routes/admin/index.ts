@@ -5,6 +5,8 @@ import profileRouter from "./profile"
 import gradeRouter from "./grade"
 import classRouter from "./class"
 import parentRouter from "./parent"
+import subjectRouter from "./subject"
+import studentRouter from "./student"
 import { authenticated } from "../../middlewares/authenticated"
 import { authorizeRoles } from "../../middlewares/authorized"
 
@@ -17,5 +19,7 @@ router.use("/profile", profileRouter)
 router.use("/grade", gradeRouter)
 router.use("/class", classRouter)
 router.use("/parent", parentRouter)
+router.use("/subject", subjectRouter)
+router.use("/student", studentRouter)
 
 export default router
