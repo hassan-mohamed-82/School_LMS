@@ -45,9 +45,5 @@ const classSchema = new Schema<IClass>(
   }
 );
 
-// Indexes
-classSchema.index({ school: 1, grade: 1, name: 1 }, { unique: true });
-classSchema.index({ school: 1, status: 1 });
-classSchema.index({ grade: 1 });
 
 export default mongoose.model<IClass>('Class', classSchema);

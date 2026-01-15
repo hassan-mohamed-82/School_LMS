@@ -45,8 +45,4 @@ const gradeSchema = new Schema<IGrade>(
   }
 );
 
-// Indexes
-gradeSchema.index({ school: 1 });
-gradeSchema.index({ school: 1, sortOrder: 1 });
-
 export default mongoose.model<IGrade>('Grade', gradeSchema);

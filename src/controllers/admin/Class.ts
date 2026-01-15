@@ -71,7 +71,7 @@ export const createClass = async (req: Request, res: Response) => {
     });
 
     // Populate grade for response
-    await classDoc.populate('grade', 'name nameEn');
+    await classDoc.populate('gradeId', 'name nameEn');
 
     return SuccessResponse(res, { class: classDoc, message: 'تم إضافة الفصل بنجاح' }, 201);
 };
@@ -119,7 +119,7 @@ export const updateClass = async (req: Request, res: Response) => {
         id,
         { $set: updateData },
         { new: true }
-    ).populate('grade', 'name nameEn');
+    ).populate('gradeId', 'name nameEn');
 
     return SuccessResponse(res, { class: classDoc, message: 'تم تحديث الفصل بنجاح' });
 };
