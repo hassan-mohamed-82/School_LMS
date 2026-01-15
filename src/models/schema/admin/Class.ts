@@ -5,7 +5,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 // Types
 export interface IClass extends Document {
   school: mongoose.Types.ObjectId;
-  grade: mongoose.Types.ObjectId;
+  gradeId: mongoose.Types.ObjectId;
   name: string;
   capacity?: number;
   status: 'active' | 'inactive';
@@ -21,7 +21,7 @@ const classSchema = new Schema<IClass>(
       ref: 'School',
       required: true,
     },
-    grade: {
+    gradeId: {
       type: Schema.Types.ObjectId,
       ref: 'Grade',
       required: [true, 'المرحلة مطلوبة'],

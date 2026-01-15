@@ -42,7 +42,7 @@ const classSchema = new mongoose_1.Schema({
         ref: 'School',
         required: true,
     },
-    grade: {
+    gradeId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Grade',
         required: [true, 'المرحلة مطلوبة'],

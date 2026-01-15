@@ -7,7 +7,7 @@ export type ExamType = 'monthly' | 'midterm' | 'semester' | 'final';
 
 export interface IExam extends Document {
     school: mongoose.Types.ObjectId;
-    grade: mongoose.Types.ObjectId;
+    gradeId: mongoose.Types.ObjectId;
     subject: mongoose.Types.ObjectId;
     name: string;
     type: ExamType;
@@ -28,7 +28,7 @@ const examSchema = new Schema<IExam>(
             ref: 'School',
             required: true,
         },
-        grade: {
+        gradeId: {
             type: Schema.Types.ObjectId,
             ref: 'Grade',
             required: [true, 'المرحلة مطلوبة'],
