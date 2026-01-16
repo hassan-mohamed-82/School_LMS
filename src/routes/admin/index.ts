@@ -11,6 +11,8 @@ import periodRouter from "./period"
 import scheduleRouter from "./schedule"
 import examRouter from "./exam"
 import studentGradeRouter from "./studentGrade"
+import schoolAdminRolesRouter from "./schoolAdminRoles"
+import schoolAdminRouter from "./schoolAdmin"
 import { authenticated } from "../../middlewares/authenticated"
 import { authorizeRoles } from "../../middlewares/authorized"
 
@@ -29,5 +31,6 @@ router.use("/period", periodRouter)
 router.use("/schedule", scheduleRouter)
 router.use("/exam", examRouter)
 router.use("/studentgrade", studentGradeRouter)
-
+router.use("/schooladmin", schoolAdminRouter)
+router.use("/schooladminroles", schoolAdminRolesRouter)
 export default router

@@ -45,6 +45,11 @@ const schoolAdminSchema = new Schema<ISchoolAdmin>(
       enum: ['organizer', 'admin'],
       default: 'admin',
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     role: {
       type: Schema.Types.ObjectId,
       ref: 'SchoolAdminRole',

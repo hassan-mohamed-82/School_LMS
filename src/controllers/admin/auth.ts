@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import SchoolAdmin from "../../models/schema/admin/SchoolAdmin";
-import "../../models/schema/superadmin/school"; // Register School schema for populate
+import "../../models/schema/superadmin/school";
 import { generateOrganizerToken, generateAdminToken } from "../../utils/auth";
 import { SuccessResponse } from "../../utils/response";
 import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { UnauthorizedError } from "../../Errors";
+import { MODULE_LABELS, ACTION_LABELS, SchoolAdminModuleName } from "../../types/constant";
 
 // ═══════════════════════════════════════════════════════════════
 // 🔐 LOGIN
 // ═══════════════════════════════════════════════════════════════
-
 
 export const login = async (req: Request, res: Response) => {
     const { email, phone, password } = req.body;
@@ -34,7 +34,7 @@ export const login = async (req: Request, res: Response) => {
     const admin = await SchoolAdmin.findOne(query)
         .select("+password")
         .populate("school", "name nameEn logo status")
-        .populate("role", "name permissions");
+        .populate("role", "name permissions status");
 
     if (!admin) {
         throw new NotFound(email ? "البريد الإلكتروني غير مسجل" : "رقم الهاتف غير مسجل");
@@ -110,8 +110,19 @@ export const login = async (req: Request, res: Response) => {
         adminResponse.role = {
             id: role._id,
             name: role.name,
+            status: role.status,
         };
-        adminResponse.permissions = role.permissions || [];
+        adminResponse.permissions = formatPermissions(role.permissions || []);
+    }
+
+    // ✅ Add full permissions for organizer (all access)
+    if (admin.type === "organizer") {
+        adminResponse.role = {
+            id: null,
+            name: "منظم المدرسة",
+            status: "active",
+        };
+        adminResponse.permissions = "all"; // Or you can return all modules
     }
 
     return SuccessResponse(
@@ -123,4 +134,20 @@ export const login = async (req: Request, res: Response) => {
         },
         200
     );
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 🔧 HELPER: Format Permissions with Labels
+// ═══════════════════════════════════════════════════════════════
+
+const formatPermissions = (permissions: any[]) => {
+    return permissions.map(perm => ({
+        module: perm.module,
+        moduleLabel: MODULE_LABELS[perm.module as SchoolAdminModuleName] || perm.module,
+        actions: perm.actions.map((act: any) => ({
+            id: act.id,
+            action: act.action,
+            actionLabel: ACTION_LABELS[act.action] || act.action,
+        })),
+    }));
 };
