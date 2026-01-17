@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SCHOOL_ADMIN_MODULES = void 0;
+exports.getAllModulesWithActions = exports.ACTION_LABELS = exports.MODULE_LABELS = exports.SCHOOL_ADMIN_MODULES = void 0;
 exports.SCHOOL_ADMIN_MODULES = {
     dashboard: ['view'],
     teachers: ['view', 'add', 'edit', 'delete', 'status'],
@@ -18,27 +18,43 @@ exports.SCHOOL_ADMIN_MODULES = {
     reports: ['view', 'export'],
     settings: ['view', 'edit'],
 };
-// src/constants/superAdminPermissions.ts
-// export const SUPER_ADMIN_MODULES = [
-//   "organizations",
-//   "plans", 
-//   "payments",
-//   "subscriptions",
-//   "payment_methods",
-//   "promocodes",
-//   "reports",
-//   "sub_admins",
-//   "super_admin_roles",
-//   "settings",
-// ] as const;
-// export const SUPER_ADMIN_ACTIONS = [
-//   "view",
-//   "create",
-//   "update",
-//   "delete",
-//   "approve",
-//   "reject",
-//   "export",
-// ] as const;
-// export type SuperAdminModule = (typeof SUPER_ADMIN_MODULES)[number];
-// export type SuperAdminAction = (typeof SUPER_ADMIN_ACTIONS)[number];
+// Labels بالعربي
+exports.MODULE_LABELS = {
+    dashboard: 'لوحة التحكم',
+    teachers: 'المدرسين',
+    parents: 'أولياء الأمور',
+    students: 'الطلاب',
+    grades: 'المراحل',
+    classes: 'الفصول',
+    subjects: 'المواد',
+    schedule: 'الجدول',
+    attendance: 'الحضور',
+    exams: 'الامتحانات',
+    student_grades: 'درجات الطلاب',
+    fees: 'المصاريف',
+    payments: 'المدفوعات',
+    reports: 'التقارير',
+    settings: 'الإعدادات',
+};
+exports.ACTION_LABELS = {
+    view: 'عرض',
+    add: 'إضافة',
+    edit: 'تعديل',
+    delete: 'حذف',
+    status: 'تغيير الحالة',
+    approve: 'موافقة',
+    reject: 'رفض',
+    export: 'تصدير',
+};
+// Helper: Get all modules with their actions
+const getAllModulesWithActions = () => {
+    return Object.entries(exports.SCHOOL_ADMIN_MODULES).map(([module, actions]) => ({
+        module,
+        moduleLabel: exports.MODULE_LABELS[module],
+        actions: actions.map(action => ({
+            action,
+            actionLabel: exports.ACTION_LABELS[action],
+        })),
+    }));
+};
+exports.getAllModulesWithActions = getAllModulesWithActions;

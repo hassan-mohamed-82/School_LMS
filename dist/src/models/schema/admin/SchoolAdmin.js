@@ -61,6 +61,11 @@ const schoolAdminSchema = new mongoose_1.Schema({
         enum: ['organizer', 'admin'],
         default: 'admin',
     },
+    email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+    },
     role: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'SchoolAdminRole',

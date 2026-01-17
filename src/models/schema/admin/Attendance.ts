@@ -3,21 +3,20 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 // Types
-export type AttendanceStatus = 'present' | 'absent' ;
-
 export interface IAttendance extends Document {
     school: mongoose.Types.ObjectId;
     student: mongoose.Types.ObjectId;
     class: mongoose.Types.ObjectId;
+    grade: mongoose.Types.ObjectId;
+    session?: mongoose.Types.ObjectId;
     date: Date;
-    status: AttendanceStatus;
+    status: 'present' | 'absent';
     recordedBy: mongoose.Types.ObjectId;
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
 }
 
-// Schema
 const attendanceSchema = new Schema<IAttendance>(
     {
         school: {
@@ -28,26 +27,35 @@ const attendanceSchema = new Schema<IAttendance>(
         student: {
             type: Schema.Types.ObjectId,
             ref: 'Student',
-            required: [true, 'الطالب مطلوب'],
+            required: true,
         },
         class: {
             type: Schema.Types.ObjectId,
             ref: 'Class',
-            required: [true, 'الفصل مطلوب'],
+            required: true,
+        },
+        grade: {
+            type: Schema.Types.ObjectId,
+            ref: 'Grade',
+            required: true,
+        },
+        session: {
+            type: Schema.Types.ObjectId,
+            ref: 'TeacherSession',
         },
         date: {
             type: Date,
-            required: [true, 'التاريخ مطلوب'],
+            required: true,
         },
         status: {
             type: String,
             enum: ['present', 'absent'],
-            required: [true, 'حالة الحضور مطلوبة'],
+            required: true,
         },
         recordedBy: {
             type: Schema.Types.ObjectId,
-            ref: 'Teacher',
-            required: [true, 'المدرس مطلوب'],
+            required: true,
+            refPath: 'recordedByModel',
         },
         notes: {
             type: String,
@@ -57,6 +65,5 @@ const attendanceSchema = new Schema<IAttendance>(
         timestamps: true,
     }
 );
-
 
 export default mongoose.model<IAttendance>('Attendance', attendanceSchema);
