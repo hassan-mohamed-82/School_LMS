@@ -9,7 +9,6 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { connectDB } from "./models/connection";
 import path from "path";
-// import { startLateCheckJob, checkLateBorrows } from "./utils/checkLateBorrows";
 
 dotenv.config();
 
@@ -34,16 +33,16 @@ app.use(errorHandler);
 
 const server = http.createServer(app);
 
-// ✅ كل حاجة هنا
 const startServer = async () => {
   await connectDB();
   
-  // startLateCheckJob();      // ← يجدول الـ job كل يوم
-  // await checkLateBorrows(); // ← يشتغل فوراً أول مرة
-  
-  server.listen(3000, () => {
-    console.log("Server is running on http://localhost:3000");
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
   });
 };
 
 startServer();
+
+// ✅ أضف السطر ده - مهم جداً لـ Vercel
+export default app;

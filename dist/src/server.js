@@ -14,7 +14,6 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const helmet_1 = __importDefault(require("helmet"));
 const connection_1 = require("./models/connection");
 const path_1 = __importDefault(require("path"));
-// import { startLateCheckJob, checkLateBorrows } from "./utils/checkLateBorrows";
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
@@ -30,13 +29,13 @@ app.use((req, res, next) => {
 });
 app.use(errorHandler_1.errorHandler);
 const server = http_1.default.createServer(app);
-// ✅ كل حاجة هنا
 const startServer = async () => {
     await (0, connection_1.connectDB)();
-    // startLateCheckJob();      // ← يجدول الـ job كل يوم
-    // await checkLateBorrows(); // ← يشتغل فوراً أول مرة
-    server.listen(3000, () => {
-        console.log("Server is running on http://localhost:3000");
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
     });
 };
 startServer();
+// ✅ أضف السطر ده - مهم جداً لـ Vercel
+exports.default = app;
