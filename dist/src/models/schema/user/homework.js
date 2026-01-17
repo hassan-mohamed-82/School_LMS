@@ -1,5 +1,4 @@
 "use strict";
-// src/models/Attendance.model.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,49 +34,55 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const attendanceSchema = new mongoose_1.Schema({
+const homeworkSchema = new mongoose_1.Schema({
     school: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'School',
         required: true,
     },
-    student: {
+    teacher: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Student',
-        required: true,
-    },
-    class: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Class',
-        required: true,
-    },
-    grade: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Grade',
+        ref: 'Teacher',
         required: true,
     },
     session: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'TeacherSession',
     },
-    date: {
-        type: Date,
+    class: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Class',
         required: true,
+    },
+    subject: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Subject',
+        required: true,
+    },
+    title: {
+        type: String,
+        required: [true, 'عنوان الواجب مطلوب'],
+        trim: true,
+    },
+    description: {
+        type: String,
+    },
+    file: {
+        type: String,
+    },
+    fileType: {
+        type: String,
+        enum: ['pdf', 'image', 'word', 'other'],
+    },
+    dueDate: {
+        type: Date,
     },
     status: {
         type: String,
-        enum: ['present', 'absent'],
-        required: true,
-    },
-    recordedBy: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        required: true,
-        refPath: 'recordedByModel',
-    },
-    notes: {
-        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
     },
 }, {
     timestamps: true,
 });
-exports.default = mongoose_1.default.model('Attendance', attendanceSchema);
+exports.default = mongoose_1.default.model('Homework', homeworkSchema);

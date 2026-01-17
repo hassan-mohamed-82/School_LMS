@@ -1,5 +1,4 @@
 "use strict";
-// src/models/Attendance.model.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,15 +34,20 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const attendanceSchema = new mongoose_1.Schema({
+const teacherSessionSchema = new mongoose_1.Schema({
     school: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'School',
         required: true,
     },
-    student: {
+    teacher: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Student',
+        ref: 'Teacher',
+        required: true,
+    },
+    schedule: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Schedule',
         required: true,
     },
     class: {
@@ -56,23 +60,37 @@ const attendanceSchema = new mongoose_1.Schema({
         ref: 'Grade',
         required: true,
     },
-    session: {
+    subject: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'TeacherSession',
+        ref: 'Subject',
+        required: true,
+    },
+    period: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Period',
+        required: true,
     },
     date: {
         type: Date,
         required: true,
     },
-    status: {
-        type: String,
-        enum: ['present', 'absent'],
+    startedAt: {
+        type: Date,
         required: true,
     },
-    recordedBy: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        required: true,
-        refPath: 'recordedByModel',
+    endedAt: {
+        type: Date,
+    },
+    status: {
+        type: String,
+        enum: ['active', 'completed', 'cancelled'],
+        default: 'active',
+    },
+    attendanceCount: {
+        present: { type: Number, default: 0 },
+        absent: { type: Number, default: 0 },
+        late: { type: Number, default: 0 },
+        excused: { type: Number, default: 0 },
     },
     notes: {
         type: String,
@@ -80,4 +98,4 @@ const attendanceSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-exports.default = mongoose_1.default.model('Attendance', attendanceSchema);
+exports.default = mongoose_1.default.model('TeacherSession', teacherSessionSchema);
