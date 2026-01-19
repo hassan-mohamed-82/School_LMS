@@ -14,6 +14,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const helmet_1 = __importDefault(require("helmet"));
 const connection_1 = require("./models/connection");
 const path_1 = __importDefault(require("path"));
+const teacherNotification_1 = require("./jobs/teacherNotification"); // ← أضف ده
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
@@ -31,11 +32,13 @@ app.use(errorHandler_1.errorHandler);
 const server = http_1.default.createServer(app);
 const startServer = async () => {
     await (0, connection_1.connectDB)();
+    // ✅ Start Cron Jobs after DB connection
+    (0, teacherNotification_1.startAllCrons)();
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+        console.log(`🚀 Server is running on port ${PORT}`);
+        console.log(`⏰ Cron Jobs are active`);
     });
 };
 startServer();
-// ✅ أضف السطر ده - مهم جداً لـ Vercel
 exports.default = app;

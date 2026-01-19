@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const notification_1 = require("../../../controllers/users/teacher/notification");
+const catchAsync_1 = require("../../../utils/catchAsync");
+const router = (0, express_1.Router)();
+router.get('/', (0, catchAsync_1.catchAsync)(notification_1.getMyNotifications));
+router.get('/unread-count', (0, catchAsync_1.catchAsync)(notification_1.getUnreadCount));
+router.put('/:notificationId/read', (0, catchAsync_1.catchAsync)(notification_1.markAsRead));
+router.put('/read-all', (0, catchAsync_1.catchAsync)(notification_1.markAllAsRead));
+exports.default = router;

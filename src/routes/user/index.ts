@@ -3,6 +3,7 @@ import teacherAuth from "./teacher/auth";
 import teacherProfile from "./teacher/profile";
 import teacherSchedule from "./teacher/schedule";
 import sessionteacheRouter from './teacher/session'
+import notificationRouter from './teacher/notification'
 import { authorizeRoles } from "../../middlewares/authorized";
 import { authenticated } from "../../middlewares/authenticated";
 
@@ -19,5 +20,5 @@ router.use(authorizeRoles("teacher", "parent"));
 router.use("/profile", teacherProfile);
 router.use("/schedule", teacherSchedule);
 router.use("/session",sessionteacheRouter)
-
+router.use("/notification",notificationRouter)
 export default router;

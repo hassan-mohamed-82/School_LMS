@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { connectDB } from "./models/connection";
 import path from "path";
+import { startAllCrons } from "./jobs/teacherNotification";  // ← أضف ده
 
 dotenv.config();
 
@@ -36,13 +37,16 @@ const server = http.createServer(app);
 const startServer = async () => {
   await connectDB();
   
+  // ✅ Start Cron Jobs after DB connection
+  startAllCrons();
+  
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`⏰ Cron Jobs are active`);
   });
 };
 
 startServer();
 
-// ✅ أضف السطر ده - مهم جداً لـ Vercel
 export default app;
