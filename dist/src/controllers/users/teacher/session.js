@@ -245,7 +245,7 @@ exports.recordAttendance = recordAttendance;
 const endSession = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { notes } = req.body;
+    const notes = req.body?.notes || null; // ✅ Safe access
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
         throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');

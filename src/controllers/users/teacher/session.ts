@@ -282,7 +282,7 @@ export const recordAttendance = async (req: Request, res: Response) => {
 export const endSession = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { notes } = req.body;
+    const notes = req.body?.notes || null;  // ✅ Safe access
 
     const session = await getActiveSession(teacherId!, schoolId!);
 
