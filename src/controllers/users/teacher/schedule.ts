@@ -106,7 +106,6 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
         sessions.map(s => [s.schedule.toString(), s])
     );
 
-    // Current time for comparison
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
     // Format response
@@ -116,22 +115,20 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
             const session = sessionMap.get(schedule._id.toString());
             const period = schedule.period as any;
 
-            // Period time status
-            let periodStatus: 'upcoming' | 'current' | 'passed' = 'upcoming';
-            if (period) {
-                if (currentTime >= period.endTime) {
-                    periodStatus = 'passed';
-                } else if (currentTime >= period.startTime && currentTime < period.endTime) {
-                    periodStatus = 'current';
-                }
-            }
-
             // Session status: pending | inprogress | completed
             const sessionStatus = session?.status || 'pending';
 
             // Actions
-            const canStart = sessionStatus === 'pending' && periodStatus !== 'passed';
+            const canStart = sessionStatus === 'pending';
             const canEnd = sessionStatus === 'inprogress';
+
+            // Duration
+            let duration = null;
+            if (session?.startedAt && session?.endedAt) {
+                duration = Math.round(
+                    (session.endedAt.getTime() - session.startedAt.getTime()) / 60000
+                );
+            }
 
             return {
                 scheduleId: schedule._id,
@@ -144,15 +141,15 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
                     startTime: period?.startTime,
                     endTime: period?.endTime,
                 },
-                periodStatus,
                 sessionStatus,
-                sessionId: session?._id || null,
                 canStart,
                 canEnd,
+                sessionId: session?._id || null,
                 sessionData: session
                     ? {
                           startedAt: session.startedAt,
                           endedAt: session.endedAt,
+                          duration,
                           attendanceCount: session.attendanceCount,
                       }
                     : null,
@@ -162,12 +159,20 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
     // Check for active session
     const activeSession = sessions.find(s => s.status === 'inprogress');
 
+    // Summary
+    const summary = {
+        total: periods.length,
+        pending: periods.filter(p => p.sessionStatus === 'pending').length,
+        inprogress: periods.filter(p => p.sessionStatus === 'inprogress').length,
+        completed: periods.filter(p => p.sessionStatus === 'completed').length,
+    };
+
     return SuccessResponse(res, {
         dayOfWeek,
         dayName: dayNames[dayOfWeek],
         date: now.toISOString().split('T')[0],
         currentTime,
-        periodsCount: periods.length,
+        summary,
         periods,
         hasActiveSession: !!activeSession,
         activeSessionId: activeSession?._id || null,
