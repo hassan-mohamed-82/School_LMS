@@ -15,4 +15,5 @@ router.post("/", (0, validation_1.validate)(schedule_1.createScheduleSchema), (0
 router.get("/:id", (0, catchAsync_1.catchAsync)(Schedule_1.getOneSchedule));
 router.put("/:id", (0, validation_1.validate)(schedule_1.updateScheduleSchema), (0, catchAsync_1.catchAsync)(Schedule_1.updateSchedule));
 router.delete("/:id", (0, catchAsync_1.catchAsync)(Schedule_1.removeSchedule));
+router.get("/teacher/:teacherId", (0, catchAsync_1.catchAsync)(Schedule_1.getTeacherSchedule));
 exports.default = router;

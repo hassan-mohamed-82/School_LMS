@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getByClass = exports.select = exports.removeSchedule = exports.updateSchedule = exports.createSchedule = exports.getOneSchedule = exports.getAllSchedules = void 0;
+exports.getTeacherSchedule = exports.getByClass = exports.select = exports.removeSchedule = exports.updateSchedule = exports.createSchedule = exports.getOneSchedule = exports.getAllSchedules = void 0;
 const Schedule_1 = __importDefault(require("../../models/schema/admin/Schedule"));
 const Grade_1 = __importDefault(require("../../models/schema/admin/Grade"));
 const Class_1 = __importDefault(require("../../models/schema/admin/Class"));
@@ -238,3 +238,36 @@ const getByClass = async (req, res) => {
     return (0, response_1.SuccessResponse)(res, { schedules: weeklySchedule });
 };
 exports.getByClass = getByClass;
+const getTeacherSchedule = async (req, res) => {
+    const schoolId = req.user?.schoolId;
+    const { teacherId } = req.params;
+    const schedules = await Schedule_1.default.find({
+        school: schoolId,
+        teacher: teacherId,
+        status: 'active',
+    })
+        .populate('grade', 'name nameEn')
+        .populate('class', 'name')
+        .populate('subject', 'name nameEn')
+        .populate('period', 'name startTime endTime sortOrder')
+        .sort({ dayOfWeek: 1 });
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const weeklySchedule = [];
+    for (let i = 0; i <= 6; i++) {
+        const daySchedules = schedules
+            .filter(s => s.dayOfWeek === i)
+            .sort((a, b) => (a.period?.sortOrder || 0) - (b.period?.sortOrder || 0));
+        if (daySchedules.length > 0) {
+            weeklySchedule.push({
+                day: i,
+                dayName: dayNames[i],
+                periods: daySchedules,
+            });
+        }
+    }
+    return (0, response_1.SuccessResponse)(res, {
+        teacherId,
+        schedule: weeklySchedule,
+    });
+};
+exports.getTeacherSchedule = getTeacherSchedule;

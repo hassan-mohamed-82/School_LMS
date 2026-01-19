@@ -261,3 +261,42 @@ export const getByClass = async (req: Request, res: Response) => {
 
     return SuccessResponse(res, { schedules: weeklySchedule });
 };
+
+
+export const getTeacherSchedule = async (req: Request, res: Response) => {
+    const schoolId = req.user?.schoolId;
+    const { teacherId } = req.params;
+
+    const schedules = await Schedule.find({
+        school: schoolId,
+        teacher: teacherId,
+        status: 'active',
+    })
+        .populate('grade', 'name nameEn')
+        .populate('class', 'name')
+        .populate('subject', 'name nameEn')
+        .populate('period', 'name startTime endTime sortOrder')
+        .sort({ dayOfWeek: 1 });
+
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+    const weeklySchedule = [];
+    for (let i = 0; i <= 6; i++) {
+        const daySchedules = schedules
+            .filter(s => s.dayOfWeek === i)
+            .sort((a: any, b: any) => (a.period?.sortOrder || 0) - (b.period?.sortOrder || 0));
+
+        if (daySchedules.length > 0) {
+            weeklySchedule.push({
+                day: i,
+                dayName: dayNames[i],
+                periods: daySchedules,
+            });
+        }
+    }
+
+    return SuccessResponse(res, {
+        teacherId,
+        schedule: weeklySchedule,
+    });
+};

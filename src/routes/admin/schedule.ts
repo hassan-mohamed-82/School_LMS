@@ -6,7 +6,8 @@ import {
     updateSchedule,
     removeSchedule,
     select,
-    getByClass
+    getByClass,
+    getTeacherSchedule
 } from "../../controllers/admin/Schedule";
 import { validate } from "../../middlewares/validation";
 import { createScheduleSchema, updateScheduleSchema } from "../../validation/admin/schedule";
@@ -24,5 +25,6 @@ router.post("/", validate(createScheduleSchema), catchAsync(createSchedule));
 router.get("/:id", catchAsync(getOneSchedule));
 router.put("/:id", validate(updateScheduleSchema), catchAsync(updateSchedule));
 router.delete("/:id", catchAsync(removeSchedule));
+router.get("/teacher/:teacherId", catchAsync(getTeacherSchedule));
 
 export default router;
