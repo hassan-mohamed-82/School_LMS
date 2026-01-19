@@ -74,6 +74,21 @@ export const createStudent = async (req: Request, res: Response) => {
     } = req.body;
 
     // Check if studentCode already exists (if provided)
+    if (!studentCode) {
+        throw new BadRequest('يجب إدخال كود الطالب');
+    }
+    const parent = await Parent.findOne({ _id: parentId, school: schoolId });
+    if (!parent) {
+        throw new NotFound('الوالد غير موجود');
+    }
+    const grade = await Grade.findOne({ _id: gradeId, school: schoolId });
+    if (!grade) {
+        throw new NotFound('الصف غير موجود');
+    }
+    const classes = await Class.findOne({ _id: classId, school: schoolId });
+    if (!classes) {
+        throw new NotFound('الصف غير موجود');
+    }
     if (studentCode) {
         const existingStudent = await Student.findOne({
             school: schoolId,
