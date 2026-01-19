@@ -282,14 +282,31 @@ export const recordAttendance = async (req: Request, res: Response) => {
 export const endSession = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const notes = req.body?.notes || null;  // ✅ Safe access
+    const notes = req.body?.notes || null;
 
-    const session = await getActiveSession(teacherId!, schoolId!);
+    // ✅ Debug logs
+    console.log('=== END SESSION DEBUG ===');
+    console.log('teacherId:', teacherId);
+    console.log('schoolId:', schoolId);
+    console.log('req.user:', req.user);
+
+    const session = await TeacherSession.findOne({
+        teacher: teacherId,
+        school: schoolId,
+        status: 'inprogress',
+    });
+
+    console.log('Found session:', session);
 
     if (!session) {
+        // ✅ Try to find any session for debugging
+        const anySession = await TeacherSession.findOne({
+            status: 'inprogress',
+        });
+        console.log('Any inprogress session:', anySession);
+        
         throw new BadRequest('لا توجد حصة شغالة');
     }
-
     const updatedSession = await TeacherSession.findByIdAndUpdate(
         session._id,
         {
