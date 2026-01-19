@@ -76,21 +76,18 @@ const teacherSessionSchema = new mongoose_1.Schema({
     },
     startedAt: {
         type: Date,
-        required: true,
     },
     endedAt: {
         type: Date,
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'cancelled'],
-        default: 'active',
+        enum: ['pending', 'inprogress', 'completed'],
+        default: 'pending',
     },
     attendanceCount: {
         present: { type: Number, default: 0 },
         absent: { type: Number, default: 0 },
-        late: { type: Number, default: 0 },
-        excused: { type: Number, default: 0 },
     },
     notes: {
         type: String,

@@ -1,12 +1,25 @@
 import { Request, Response } from 'express';
+import { BadRequest } from '../../../Errors/BadRequest';
+import { NotFound } from '../../../Errors/NotFound';
 import Schedule from '../../../models/schema/admin/Schedule';
 import TeacherSession from '../../../models/schema/user/teachersession';
-import Attendance from '../../../models/schema/admin/Attendance';
 import Student from '../../../models/schema/admin/Student';
+import Attendance from '../../../models/schema/admin/Attendance';
 import Homework from '../../../models/schema/user/homework';
-import { NotFound} from '../../../Errors';
 import { SuccessResponse } from '../../../utils/response';
 import { saveBase64Image } from '../../../utils/handleImages';
+
+// ═══════════════════════════════════════════════════════════════
+// 🔧 HELPER: Get Teacher's Active Session (inprogress)
+// ═══════════════════════════════════════════════════════════════
+
+const getActiveSession = async (teacherId: string, schoolId: string) => {
+    return await TeacherSession.findOne({
+        teacher: teacherId,
+        school: schoolId,
+        status: 'inprogress',
+    });
+};
 
 // ═══════════════════════════════════════════════════════════════
 // 📅 GET MY WEEKLY SCHEDULE (ثابت طول الترم)
@@ -27,15 +40,14 @@ export const getMySchedule = async (req: Request, res: Response) => {
         .populate('period', 'name startTime endTime sortOrder')
         .sort({ dayOfWeek: 1 });
 
-    // Group by day
     const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    
+
     const weeklySchedule = [];
     for (let i = 0; i <= 6; i++) {
         const daySchedules = schedules
             .filter(s => s.dayOfWeek === i)
             .sort((a: any, b: any) => (a.period?.sortOrder || 0) - (b.period?.sortOrder || 0));
-        
+
         if (daySchedules.length > 0) {
             weeklySchedule.push({
                 day: i,
@@ -46,22 +58,29 @@ export const getMySchedule = async (req: Request, res: Response) => {
         }
     }
 
-    return SuccessResponse(res, { 
+    return SuccessResponse(res, {
         schedule: weeklySchedule,
         totalPeriods: schedules.length,
     });
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 📅 GET TODAY'S SCHEDULE
+// 📅 GET TODAY'S SCHEDULE (مع حالة كل حصة)
 // ═══════════════════════════════════════════════════════════════
 
 export const getTodaySchedule = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
 
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
     // Get today's schedules
     const schedules = await Schedule.find({
@@ -77,47 +96,80 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
         .sort({ 'period.sortOrder': 1 });
 
     // Get today's sessions
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
     const sessions = await TeacherSession.find({
         school: schoolId,
         teacher: teacherId,
         date: { $gte: todayStart, $lte: todayEnd },
     });
 
-    // Add session status to each schedule
-    const schedulesWithStatus = schedules
+    const sessionMap = new Map(
+        sessions.map(s => [s.schedule.toString(), s])
+    );
+
+    // Current time for comparison
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    // Format response
+    const periods = schedules
         .sort((a: any, b: any) => (a.period?.sortOrder || 0) - (b.period?.sortOrder || 0))
         .map(schedule => {
-            const session = sessions.find(s => s.schedule.toString() === schedule._id.toString());
-            
-            let sessionStatus = 'not_started';
-            if (session) {
-                sessionStatus = session.status;
+            const session = sessionMap.get(schedule._id.toString());
+            const period = schedule.period as any;
+
+            // Period time status
+            let periodStatus: 'upcoming' | 'current' | 'passed' = 'upcoming';
+            if (period) {
+                if (currentTime >= period.endTime) {
+                    periodStatus = 'passed';
+                } else if (currentTime >= period.startTime && currentTime < period.endTime) {
+                    periodStatus = 'current';
+                }
             }
 
+            // Session status: pending | inprogress | completed
+            const sessionStatus = session?.status || 'pending';
+
+            // Actions
+            const canStart = sessionStatus === 'pending' && periodStatus !== 'passed';
+            const canEnd = sessionStatus === 'inprogress';
+
             return {
-                _id: schedule._id,
+                scheduleId: schedule._id,
                 grade: schedule.grade,
                 class: schedule.class,
                 subject: schedule.subject,
-                period: schedule.period,
+                period: {
+                    _id: period?._id,
+                    name: period?.name,
+                    startTime: period?.startTime,
+                    endTime: period?.endTime,
+                },
+                periodStatus,
                 sessionStatus,
                 sessionId: session?._id || null,
-                attendanceCount: session?.attendanceCount || null,
+                canStart,
+                canEnd,
+                sessionData: session
+                    ? {
+                          startedAt: session.startedAt,
+                          endedAt: session.endedAt,
+                          attendanceCount: session.attendanceCount,
+                      }
+                    : null,
             };
         });
 
-    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    // Check for active session
+    const activeSession = sessions.find(s => s.status === 'inprogress');
 
     return SuccessResponse(res, {
-        day: dayOfWeek,
+        dayOfWeek,
         dayName: dayNames[dayOfWeek],
-        date: today.toISOString().split('T')[0],
-        periodsCount: schedulesWithStatus.length,
-        periods: schedulesWithStatus,
+        date: now.toISOString().split('T')[0],
+        currentTime,
+        periodsCount: periods.length,
+        periods,
+        hasActiveSession: !!activeSession,
+        activeSessionId: activeSession?._id || null,
     });
 };

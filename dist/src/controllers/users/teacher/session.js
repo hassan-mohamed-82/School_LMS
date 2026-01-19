@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyClasses = exports.getMySessionsHistory = exports.uploadHomework = exports.cancelSession = exports.endSession = exports.recordAttendance = exports.getMyActiveSession = exports.startSession = void 0;
+exports.getMyClasses = exports.getMySessionsHistory = exports.uploadHomework = exports.cancelSession = exports.endSession = exports.recordAttendance = exports.startSession = exports.getMyActiveSession = void 0;
 const BadRequest_1 = require("../../../Errors/BadRequest");
 const NotFound_1 = require("../../../Errors/NotFound");
 const Schedule_1 = __importDefault(require("../../../models/schema/admin/Schedule"));
@@ -24,16 +24,76 @@ const getActiveSession = async (teacherId, schoolId) => {
     });
 };
 // ═══════════════════════════════════════════════════════════════
+// 🎯 GET MY ACTIVE SESSION (الحصة الشغالة)
+// ═══════════════════════════════════════════════════════════════
+const getMyActiveSession = async (req, res) => {
+    const schoolId = req.user?.schoolId;
+    const teacherId = req.user?.id;
+    const session = await teachersession_1.default.findOne({
+        school: schoolId,
+        teacher: teacherId,
+        status: 'inprogress',
+    })
+        .populate('class', 'name')
+        .populate('grade', 'name nameEn')
+        .populate('subject', 'name nameEn')
+        .populate('period', 'name startTime endTime');
+    if (!session) {
+        return (0, response_1.SuccessResponse)(res, {
+            hasActiveSession: false,
+            session: null,
+            students: [],
+        });
+    }
+    // Get students with attendance
+    const students = await Student_1.default.find({
+        school: schoolId,
+        classId: session.class,
+        status: 'active',
+    })
+        .select('name nameEn studentCode avatar gender')
+        .sort({ name: 1 });
+    const attendance = await Attendance_1.default.find({
+        school: schoolId,
+        session: session._id,
+    });
+    const attendanceMap = new Map(attendance.map(a => [a.student.toString(), a]));
+    const studentsWithAttendance = students.map(student => {
+        const att = attendanceMap.get(student._id.toString());
+        return {
+            _id: student._id,
+            name: student.name,
+            nameEn: student.nameEn,
+            studentCode: student.studentCode,
+            avatar: student.avatar,
+            gender: student.gender,
+            attendance: att
+                ? {
+                    status: att.status,
+                    notes: att.notes,
+                }
+                : null,
+        };
+    });
+    return (0, response_1.SuccessResponse)(res, {
+        hasActiveSession: true,
+        session,
+        students: studentsWithAttendance,
+        studentsCount: students.length,
+    });
+};
+exports.getMyActiveSession = getMyActiveSession;
+// ═══════════════════════════════════════════════════════════════
 // ▶️ START SESSION (بدء الحصة)
 // ═══════════════════════════════════════════════════════════════
 const startSession = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
     const { scheduleId } = req.body;
-    // Check if teacher already has an active session
-    const existingActiveSession = await getActiveSession(teacherId, schoolId);
-    if (existingActiveSession) {
-        throw new BadRequest_1.BadRequest('لديك حصة مفتوحة بالفعل، يجب إنهاؤها أولاً');
+    // Check if teacher already has inprogress session
+    const existingActive = await getActiveSession(teacherId, schoolId);
+    if (existingActive) {
+        throw new BadRequest_1.BadRequest('لديك حصة شغالة بالفعل، يجب إنهاؤها أولاً');
     }
     // Get schedule
     const schedule = await Schedule_1.default.findOne({
@@ -45,42 +105,50 @@ const startSession = async (req, res) => {
     if (!schedule) {
         throw new NotFound_1.NotFound('الحصة غير موجودة');
     }
-    // Check if today matches schedule day
+    // Check if today matches
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    if (schedule.dayOfWeek !== dayOfWeek) {
+    if (schedule.dayOfWeek !== today.getDay()) {
         throw new BadRequest_1.BadRequest('هذه الحصة ليست اليوم');
     }
-    // Check if session already exists today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
-    const existingSession = await teachersession_1.default.findOne({
+    // Check existing session
+    let session = await teachersession_1.default.findOne({
         school: schoolId,
         schedule: scheduleId,
         date: { $gte: todayStart, $lte: todayEnd },
     });
-    if (existingSession) {
-        if (existingSession.status === 'completed') {
+    if (session) {
+        if (session.status === 'inprogress') {
+            throw new BadRequest_1.BadRequest('الحصة شغالة بالفعل');
+        }
+        if (session.status === 'completed') {
             throw new BadRequest_1.BadRequest('الحصة انتهت بالفعل اليوم');
         }
+        // Session is pending → update to inprogress
+        session.status = 'inprogress';
+        session.startedAt = new Date();
+        await session.save();
     }
-    // Create session
-    const session = await teachersession_1.default.create({
-        school: schoolId,
-        teacher: teacherId,
-        schedule: scheduleId,
-        class: schedule.class,
-        grade: schedule.grade,
-        subject: schedule.subject,
-        period: schedule.period,
-        date: todayStart,
-        startedAt: new Date(),
-        status: 'active',
-        attendanceCount: { present: 0, absent: 0, late: 0, excused: 0 },
-    });
-    // Get students for attendance
+    else {
+        // Create new session
+        session = await teachersession_1.default.create({
+            school: schoolId,
+            teacher: teacherId,
+            schedule: scheduleId,
+            class: schedule.class,
+            grade: schedule.grade,
+            subject: schedule.subject,
+            period: schedule.period,
+            date: todayStart,
+            startedAt: new Date(),
+            status: 'inprogress',
+            attendanceCount: { present: 0, absent: 0, late: 0, excused: 0 },
+        });
+    }
+    // Get students
     const students = await Student_1.default.find({
         school: schoolId,
         classId: schedule.class,
@@ -97,91 +165,28 @@ const startSession = async (req, res) => {
         session,
         students,
         studentsCount: students.length,
-        message: 'تم بدء الحصة بنجاح'
+        message: 'تم بدء الحصة بنجاح',
     }, 201);
 };
 exports.startSession = startSession;
 // ═══════════════════════════════════════════════════════════════
-// 🎯 GET ACTIVE SESSION (جلب الحصة المفتوحة)
-// ═══════════════════════════════════════════════════════════════
-const getMyActiveSession = async (req, res) => {
-    const schoolId = req.user?.schoolId;
-    const teacherId = req.user?.id;
-    const session = await teachersession_1.default.findOne({
-        school: schoolId,
-        teacher: teacherId,
-        status: 'active',
-    })
-        .populate('class', 'name')
-        .populate('grade', 'name nameEn')
-        .populate('subject', 'name nameEn')
-        .populate('period', 'name startTime endTime');
-    if (!session) {
-        return (0, response_1.SuccessResponse)(res, {
-            hasActiveSession: false,
-            session: null,
-            students: [],
-        });
-    }
-    // Get students with attendance status
-    const students = await Student_1.default.find({
-        school: schoolId,
-        classId: session.class,
-        status: 'active',
-    })
-        .select('name nameEn studentCode avatar gender')
-        .sort({ name: 1 });
-    // Get existing attendance
-    const attendance = await Attendance_1.default.find({
-        school: schoolId,
-        session: session._id,
-    });
-    const attendanceMap = new Map(attendance.map(a => [a.student.toString(), a]));
-    const studentsWithAttendance = students.map(student => {
-        const att = attendanceMap.get(student._id.toString());
-        return {
-            _id: student._id,
-            name: student.name,
-            nameEn: student.nameEn,
-            studentCode: student.studentCode,
-            avatar: student.avatar,
-            gender: student.gender,
-            attendance: att ? {
-                status: att.status,
-                notes: att.notes,
-            } : null,
-        };
-    });
-    return (0, response_1.SuccessResponse)(res, {
-        hasActiveSession: true,
-        session,
-        students: studentsWithAttendance,
-        studentsCount: students.length,
-    });
-};
-exports.getMyActiveSession = getMyActiveSession;
-// ═══════════════════════════════════════════════════════════════
-// 📝 RECORD ATTENDANCE (تسجيل الحضور - بدون sessionId)
+// 📝 RECORD ATTENDANCE (تسجيل الحضور)
 // ═══════════════════════════════════════════════════════════════
 const recordAttendance = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { attendance } = req.body; // بدون sessionId
-    // Get active session automatically
+    const { attendance } = req.body;
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
-        throw new BadRequest_1.BadRequest('لا توجد حصة مفتوحة');
+        throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
     }
-    // Get today's date (without time)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // Record attendance for each student
     const attendanceRecords = [];
     const errors = [];
     const counts = { present: 0, absent: 0, late: 0, excused: 0 };
     for (const record of attendance) {
         try {
-            // Verify student is in this class
             const student = await Student_1.default.findOne({
                 _id: record.studentId,
                 classId: session.class,
@@ -195,7 +200,6 @@ const recordAttendance = async (req, res) => {
                 });
                 continue;
             }
-            // Update or create attendance
             const attendanceRecord = await Attendance_1.default.findOneAndUpdate({
                 school: schoolId,
                 student: record.studentId,
@@ -231,23 +235,21 @@ const recordAttendance = async (req, res) => {
         counts,
         message: errors.length > 0
             ? `تم حفظ ${attendanceRecords.length} سجل مع ${errors.length} أخطاء`
-            : 'تم تسجيل الحضور بنجاح'
+            : 'تم تسجيل الحضور بنجاح',
     });
 };
 exports.recordAttendance = recordAttendance;
 // ═══════════════════════════════════════════════════════════════
-// ⏹️ END SESSION (إنهاء الحصة - بدون sessionId)
+// ⏹️ END SESSION (إنهاء الحصة)
 // ═══════════════════════════════════════════════════════════════
 const endSession = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { notes } = req.body; // بدون sessionId
-    // Get active session automatically
+    const { notes } = req.body;
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
-        throw new BadRequest_1.BadRequest('لا توجد حصة مفتوحة');
+        throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
     }
-    // Update session
     const updatedSession = await teachersession_1.default.findByIdAndUpdate(session._id, {
         $set: {
             status: 'completed',
@@ -259,61 +261,57 @@ const endSession = async (req, res) => {
         .populate('grade', 'name nameEn')
         .populate('subject', 'name nameEn')
         .populate('period', 'name startTime endTime');
-    // Calculate duration in minutes
-    const duration = Math.round((new Date().getTime() - session.startedAt.getTime()) / 60000);
+    const duration = session.startedAt
+        ? Math.round((new Date().getTime() - session.startedAt.getTime()) / 60000)
+        : 0;
     return (0, response_1.SuccessResponse)(res, {
         session: updatedSession,
         duration,
-        message: 'تم إنهاء الحصة بنجاح'
+        message: 'تم إنهاء الحصة بنجاح',
     });
 };
 exports.endSession = endSession;
 // ═══════════════════════════════════════════════════════════════
-// ❌ CANCEL SESSION (إلغاء الحصة - بدون sessionId)
+// ❌ CANCEL SESSION (إلغاء الحصة)
 // ═══════════════════════════════════════════════════════════════
 const cancelSession = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    // Get active session automatically
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
-        throw new BadRequest_1.BadRequest('لا توجد حصة مفتوحة');
+        throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
     }
-    // Delete attendance records for this session
+    // Delete related records
     await Attendance_1.default.deleteMany({ session: session._id });
-    // Delete homework for this session
     await homework_1.default.deleteMany({ session: session._id });
-    // Update session status
+    // Update session
     await teachersession_1.default.findByIdAndUpdate(session._id, {
         $set: {
-            status: 'cancelled',
-            endedAt: new Date(),
+            status: 'pending',
+            startedAt: null,
         },
     });
     return (0, response_1.SuccessResponse)(res, {
-        message: 'تم إلغاء الحصة'
+        message: 'تم إلغاء الحصة',
     });
 };
 exports.cancelSession = cancelSession;
 // ═══════════════════════════════════════════════════════════════
-// 📚 UPLOAD HOMEWORK (رفع واجب - بدون classId/gradeId/subjectId)
+// 📚 UPLOAD HOMEWORK (رفع واجب)
 // ═══════════════════════════════════════════════════════════════
 const uploadHomework = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { title, description, file, dueDate } = req.body; // بدون IDs
-    // Get active session automatically
+    const { title, description, file, dueDate } = req.body;
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
-        throw new BadRequest_1.BadRequest('لا توجد حصة مفتوحة');
+        throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
     }
-    // Handle file upload
     let fileUrl = null;
     let fileType = null;
     if (file) {
         const uniqueId = new Date().getTime().toString();
         fileUrl = await (0, handleImages_1.saveBase64Image)(file, uniqueId, req, 'homework');
-        // Detect file type
         if (file.startsWith('data:application/pdf')) {
             fileType = 'pdf';
         }
@@ -327,14 +325,13 @@ const uploadHomework = async (req, res) => {
             fileType = 'other';
         }
     }
-    // Create homework using session data
     const homeworkRecord = await homework_1.default.create({
         school: schoolId,
         teacher: teacherId,
         session: session._id,
-        class: session.class, // من السيشن
-        grade: session.grade, // من السيشن
-        subject: session.subject, // من السيشن
+        class: session.class,
+        grade: session.grade,
+        subject: session.subject,
         title,
         description: description || null,
         file: fileUrl,
@@ -347,23 +344,21 @@ const uploadHomework = async (req, res) => {
     await homeworkRecord.populate('subject', 'name nameEn');
     return (0, response_1.SuccessResponse)(res, {
         homework: homeworkRecord,
-        message: 'تم رفع الواجب بنجاح'
+        message: 'تم رفع الواجب بنجاح',
     }, 201);
 };
 exports.uploadHomework = uploadHomework;
 // ═══════════════════════════════════════════════════════════════
-// 📜 GET MY SESSIONS HISTORY (سجل الحصص)
+// 📜 GET SESSIONS HISTORY (سجل الحصص)
 // ═══════════════════════════════════════════════════════════════
 const getMySessionsHistory = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { startDate, endDate, classId, page = 1, limit = 10 } = req.query;
+    const { startDate, endDate, classId, status, page = 1, limit = 10 } = req.query;
     const query = {
         school: schoolId,
         teacher: teacherId,
-        status: { $in: ['completed', 'cancelled'] }, // بدون active
     };
-    // Date filter
     if (startDate || endDate) {
         query.date = {};
         if (startDate)
@@ -373,6 +368,8 @@ const getMySessionsHistory = async (req, res) => {
     }
     if (classId)
         query.class = classId;
+    if (status)
+        query.status = status;
     const skip = (Number(page) - 1) * Number(limit);
     const [sessions, total] = await Promise.all([
         teachersession_1.default.find(query)
@@ -402,7 +399,6 @@ exports.getMySessionsHistory = getMySessionsHistory;
 const getMyClasses = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    // Get unique classes from schedule
     const schedules = await Schedule_1.default.find({
         school: schoolId,
         teacher: teacherId,
@@ -411,7 +407,6 @@ const getMyClasses = async (req, res) => {
         .populate('grade', 'name nameEn')
         .populate('class', 'name')
         .populate('subject', 'name nameEn');
-    // Get unique classes with their subjects
     const classesMap = new Map();
     schedules.forEach(schedule => {
         const classId = schedule.class._id.toString();
@@ -422,7 +417,6 @@ const getMyClasses = async (req, res) => {
                 subjects: [],
             });
         }
-        // Add subject if not exists
         const subjects = classesMap.get(classId).subjects;
         const subjectId = schedule.subject._id.toString();
         if (!subjects.find((s) => s._id.toString() === subjectId)) {

@@ -1,5 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type SessionStatus = 'pending' | 'inprogress' | 'completed';
+
 export interface ITeacherSession extends Document {
     school: mongoose.Types.ObjectId;
     teacher: mongoose.Types.ObjectId;
@@ -9,14 +11,12 @@ export interface ITeacherSession extends Document {
     subject: mongoose.Types.ObjectId;
     period: mongoose.Types.ObjectId;
     date: Date;
-    startedAt: Date;
+    startedAt?: Date;
     endedAt?: Date;
-    status: 'active' | 'completed' | 'cancelled';
+    status: SessionStatus;
     attendanceCount: {
         present: number;
         absent: number;
-        late: number;
-        excused: number;
     };
     notes?: string;
     createdAt: Date;
@@ -66,21 +66,18 @@ const teacherSessionSchema = new Schema<ITeacherSession>(
         },
         startedAt: {
             type: Date,
-            required: true,
         },
         endedAt: {
             type: Date,
         },
         status: {
             type: String,
-            enum: ['active', 'completed', 'cancelled'],
-            default: 'active',
+            enum: ['pending', 'inprogress', 'completed'],
+            default: 'pending',
         },
         attendanceCount: {
             present: { type: Number, default: 0 },
             absent: { type: Number, default: 0 },
-            late: { type: Number, default: 0 },
-            excused: { type: Number, default: 0 },
         },
         notes: {
             type: String,
@@ -90,7 +87,6 @@ const teacherSessionSchema = new Schema<ITeacherSession>(
         timestamps: true,
     }
 );
-
 
 
 export default mongoose.model<ITeacherSession>('TeacherSession', teacherSessionSchema);
