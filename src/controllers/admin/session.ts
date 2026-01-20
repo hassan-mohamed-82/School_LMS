@@ -7,70 +7,90 @@ import Homework from '../../models/schema/user/homework';
 import { SuccessResponse } from '../../utils/response';
 import { NotFound } from '../../Errors';
 import { BadRequest } from '../../Errors/BadRequest';
+import { getTodayRange, getDateRange, IDateRange } from '../../utils/date_Egypt';
+import Class from '../../models/schema/admin/Class';
+
+// ═══════════════════════════════════════════════════════════════
+// 📊 GET CLASS ATTENDANCE BY DATE (حضور فصل في يوم معين)
+// ═══════════════════════════════════════════════════════════════
 
 
 export const getClassAttendanceByDate = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
     const { classId, date } = req.body;
 
-    if (!classId) {
-        throw new BadRequest('معرف الفصل مطلوب');
+    // استخدام نوع موحد
+    const dateRange: IDateRange = date ? getDateRange(date) : getTodayRange();
+    const { dayStart, dayEnd, dateString, dayName } = dateRange;
+
+    // Get class
+    const classDoc = await Class.findOne({
+        _id: classId,
+        school: schoolId,
+    }).populate('grade', 'name nameEn');
+
+    if (!classDoc) {
+        throw new NotFound('الفصل غير موجود');
     }
 
-    const targetDate = date ? new Date(date) : new Date();
-    targetDate.setHours(0, 0, 0, 0);
-
-    const targetDateEnd = new Date(targetDate);
-    targetDateEnd.setHours(23, 59, 59, 999);
-
-    // Get all students in class
+    // Get students
     const students = await Student.find({
         school: schoolId,
         classId: classId,
         status: 'active',
-    }).select('name nameEn studentCode gender');
+    })
+        .select('name nameEn studentCode avatar gender')
+        .sort({ name: 1 });
 
-    // Get attendance for this date
+    // Get attendance records
     const attendanceRecords = await Attendance.find({
         school: schoolId,
         class: classId,
-        date: { $gte: targetDate, $lte: targetDateEnd },
-    }).populate('recordedBy', 'name');
+        date: { $gte: dayStart, $lte: dayEnd },
+    }).populate('session', 'subject period');
 
-    const attendanceMap = new Map(
-        attendanceRecords.map(a => [a.student.toString(), a])
-    );
+    // Map attendance
+    const attendanceMap = new Map();
+    attendanceRecords.forEach((record) => {
+        attendanceMap.set(record.student.toString(), record);
+    });
 
-    // Merge students with attendance
-    const studentsWithAttendance = students.map(student => {
-        const att = attendanceMap.get(student._id.toString());
+    // Merge
+    const studentsWithAttendance = students.map((student) => {
+        const attendance = attendanceMap.get(student._id.toString());
         return {
-            _id: student._id,
-            name: student.name,
-            nameEn: student.nameEn,
-            studentCode: student.studentCode,
-            gender: student.gender,
-            status: att?.status || 'not_recorded',
-            notes: att?.notes || null,
-            recordedBy: att?.recordedBy || null,
+            student: {
+                _id: student._id,
+                name: student.name,
+                nameEn: student.nameEn,
+                studentCode: student.studentCode,
+                avatar: student.avatar,
+                gender: student.gender,
+            },
+            attendance: attendance
+                ? {
+                    status: attendance.status,
+                    notes: attendance.notes,
+                    recordedAt: attendance.createdAt,
+                }
+                : null,
         };
     });
 
     // Summary
     const summary = {
         total: students.length,
-        present: studentsWithAttendance.filter(s => s.status === 'present').length,
-        absent: studentsWithAttendance.filter(s => s.status === 'absent').length,
-        late: studentsWithAttendance.filter(s => s.status === 'late').length,
-        excused: studentsWithAttendance.filter(s => s.status === 'excused').length,
-        notRecorded: studentsWithAttendance.filter(s => s.status === 'not_recorded').length,
+        present: attendanceRecords.filter((a) => a.status === 'present').length,
+        absent: attendanceRecords.filter((a) => a.status === 'absent').length,
+        notRecorded: students.length - attendanceRecords.length,
     };
 
     return SuccessResponse(res, {
-        classId,
-        date: targetDate.toISOString().split('T')[0],
-        summary,
+        class: classDoc,
+        date: dateString,
+        dayName,
         students: studentsWithAttendance,
+        summary,
     });
 };
 
@@ -100,34 +120,30 @@ export const getStudentAttendanceHistory = async (req: Request, res: Response) =
         student: studentId,
     };
 
+    // ✅ استخدم الـ Helper للتواريخ
     if (startDate || endDate) {
         query.date = {};
-        if (startDate) query.date.$gte = new Date(startDate);
-        if (endDate) query.date.$lte = new Date(endDate);
+        if (startDate) {
+            const { dayStart } = getDateRange(startDate);
+            query.date.$gte = dayStart;
+        }
+        if (endDate) {
+            const { dayEnd } = getDateRange(endDate);
+            query.date.$lte = dayEnd;
+        }
     }
 
-
     const records = await Attendance.find(query)
-            .populate('recordedBy', 'name')
-            .populate('session', 'subject period')
-            .sort({ date: -1 })
-           
-    
-
-    // Summary
-    const allRecords = await Attendance.find({
-        school: schoolId,
-        student: studentId,
-        ...(startDate || endDate ? { date: query.date } : {}),
-    });
+        .populate('recordedBy', 'name')
+        .populate('session', 'subject period')
+        .sort({ date: -1 });
 
     const summary = {
-        totalDays: allRecords.length,
-        present: allRecords.filter(r => r.status === 'present').length,
-        absent: allRecords.filter(r => r.status === 'absent').length,
-       
-        attendanceRate: allRecords.length > 0
-            ? Math.round((allRecords.filter(r => r.status === 'present').length / allRecords.length) * 100)
+        totalDays: records.length,
+        present: records.filter(r => r.status === 'present').length,
+        absent: records.filter(r => r.status === 'absent').length,
+        attendanceRate: records.length > 0
+            ? Math.round((records.filter(r => r.status === 'present').length / records.length) * 100)
             : 0,
     };
 
@@ -135,7 +151,6 @@ export const getStudentAttendanceHistory = async (req: Request, res: Response) =
         student,
         summary,
         records,
-       
     });
 };
 
@@ -155,26 +170,22 @@ export const getClassAttendanceReport = async (req: Request, res: Response) => {
         throw new BadRequest('تاريخ البداية والنهاية مطلوبين');
     }
 
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // ✅ استخدم الـ Helper
+    const { dayStart: start, dateString: startString } = getDateRange(startDate);
+    const { dayEnd: end, dateString: endString } = getDateRange(endDate);
 
-    // Get all students
     const students = await Student.find({
         school: schoolId,
         classId: classId,
         status: 'active',
     }).select('name nameEn studentCode');
 
-    // Get all attendance in period
     const attendanceRecords = await Attendance.find({
         school: schoolId,
         class: classId,
         date: { $gte: start, $lte: end },
     });
 
-    // Build report for each student
     const report = students.map(student => {
         const studentRecords = attendanceRecords.filter(
             r => r.student.toString() === student._id.toString()
@@ -182,7 +193,7 @@ export const getClassAttendanceReport = async (req: Request, res: Response) => {
 
         const present = studentRecords.filter(r => r.status === 'present').length;
         const absent = studentRecords.filter(r => r.status === 'absent').length;
-         const total = studentRecords.length;
+        const total = studentRecords.length;
 
         return {
             _id: student._id,
@@ -192,17 +203,14 @@ export const getClassAttendanceReport = async (req: Request, res: Response) => {
             attendance: {
                 present,
                 absent,
-              
                 total,
                 rate: total > 0 ? Math.round((present / total) * 100) : 0,
             },
         };
     });
 
-    // Sort by attendance rate
     report.sort((a, b) => b.attendance.rate - a.attendance.rate);
 
-    // Overall summary
     const totalRecords = attendanceRecords.length;
     const overallSummary = {
         totalStudents: students.length,
@@ -217,8 +225,8 @@ export const getClassAttendanceReport = async (req: Request, res: Response) => {
     return SuccessResponse(res, {
         classId,
         period: {
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0],
+            startDate: startString,
+            endDate: endString,
         },
         overallSummary,
         students: report,
@@ -242,37 +250,33 @@ export const getTeacherSessions = async (req: Request, res: Response) => {
         teacher: teacherId,
     };
 
+    // ✅ استخدم الـ Helper للتواريخ
     if (startDate || endDate) {
         query.date = {};
-        if (startDate) query.date.$gte = new Date(startDate);
-        if (endDate) query.date.$lte = new Date(endDate);
+        if (startDate) {
+            const { dayStart } = getDateRange(startDate);
+            query.date.$gte = dayStart;
+        }
+        if (endDate) {
+            const { dayEnd } = getDateRange(endDate);
+            query.date.$lte = dayEnd;
+        }
     }
 
     if (status) query.status = status;
 
     const sessions = await TeacherSession.find(query)
-            .populate('class', 'name')
-            .populate('grade', 'name nameEn')
-            .populate('subject', 'name nameEn')
-            .populate('period', 'name startTime endTime')
-            .sort({ date: -1, startedAt: -1 })
-
-    // Summary
-    const summaryQuery: any = {
-        school: schoolId,
-        teacher: teacherId,
-    };
-    if (startDate || endDate) {
-        summaryQuery.date = query.date;
-    }
-
-    const allSessions = await TeacherSession.find(summaryQuery);
+        .populate('class', 'name')
+        .populate('grade', 'name nameEn')
+        .populate('subject', 'name nameEn')
+        .populate('period', 'name startTime endTime')
+        .sort({ date: -1, startedAt: -1 });
 
     const summary = {
-        total: allSessions.length,
-        completed: allSessions.filter(s => s.status === 'completed').length,
-        inprogress: allSessions.filter(s => s.status === 'inprogress').length,
-        pending: allSessions.filter(s => s.status === 'pending').length,
+        total: sessions.length,
+        completed: sessions.filter(s => s.status === 'completed').length,
+        inprogress: sessions.filter(s => s.status === 'inprogress').length,
+        pending: sessions.filter(s => s.status === 'pending').length,
     };
 
     return SuccessResponse(res, {
@@ -308,17 +312,14 @@ export const getSessionDetails = async (req: Request, res: Response) => {
         throw new NotFound('الحصة غير موجودة');
     }
 
-    // Get attendance
     const attendance = await Attendance.find({
         session: sessionId,
     }).populate('student', 'name nameEn studentCode');
 
-    // Get homework
     const homework = await Homework.find({
         session: sessionId,
     });
 
-    // Duration
     let duration = null;
     if (session.startedAt && session.endedAt) {
         duration = Math.round(
@@ -343,14 +344,12 @@ export const getSessionDetails = async (req: Request, res: Response) => {
 export const getTodaySessionsOverview = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // ✅ استخدم الـ Helper
+    const { dayStart, dayEnd, date } = getTodayRange();
 
     const sessions = await TeacherSession.find({
         school: schoolId,
-        date: { $gte: todayStart, $lte: todayEnd },
+        date: { $gte: dayStart, $lte: dayEnd },
     })
         .populate('teacher', 'name')
         .populate('class', 'name')
@@ -366,7 +365,6 @@ export const getTodaySessionsOverview = async (req: Request, res: Response) => {
         pending: sessions.filter(s => s.status === 'pending').length,
     };
 
-    // Group by status
     const byStatus = {
         inprogress: sessions.filter(s => s.status === 'inprogress'),
         pending: sessions.filter(s => s.status === 'pending'),
@@ -374,7 +372,7 @@ export const getTodaySessionsOverview = async (req: Request, res: Response) => {
     };
 
     return SuccessResponse(res, {
-        date: todayStart.toISOString().split('T')[0],
+        date,
         summary,
         sessions: byStatus,
     });

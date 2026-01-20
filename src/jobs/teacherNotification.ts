@@ -1,15 +1,14 @@
 import cron from 'node-cron';
 import Schedule from '../models/schema/admin/Schedule';
 import Period from '../models/schema/admin/Period';
-import Teacher from '../models/schema/admin/Teacher';
 import { sendNotification } from '../utils/Notification';
+import { getTodayRange, getLocalNow, timeToMinutes, minutesToTime } from '../utils/date_Egypt';
 
 // ═══════════════════════════════════════════════════════════════
 // ⏰ PERIOD REMINDER CRON (Every minute)
 // ═══════════════════════════════════════════════════════════════
 
 export const startPeriodReminderCron = () => {
-    // Run every minute
     cron.schedule('* * * * *', async () => {
         try {
             await checkUpcomingPeriods();
@@ -26,14 +25,16 @@ export const startPeriodReminderCron = () => {
 // ═══════════════════════════════════════════════════════════════
 
 const checkUpcomingPeriods = async () => {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    
+    // ✅ استخدم الـ Helper
+    const { dayOfWeek, currentTime } = getTodayRange();
+    const localNow = getLocalNow();
+
     // Current time + 15 minutes
-    const targetTime = new Date(now.getTime() + 15 * 60 * 1000);
-    const targetHour = targetTime.getHours();
-    const targetMinute = targetTime.getMinutes();
-    const targetTimeStr = `${targetHour.toString().padStart(2, '0')}:${targetMinute.toString().padStart(2, '0')}`;
+    const currentMinutes = timeToMinutes(currentTime);
+    const targetMinutes = currentMinutes + 15;
+    const targetTimeStr = minutesToTime(targetMinutes);
+
+    console.log(`⏰ Checking periods at ${targetTimeStr} (current: ${currentTime})`);
 
     // Find periods starting at target time
     const periods = await Period.find({
@@ -82,12 +83,12 @@ const checkUpcomingPeriods = async () => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 🧹 CLEANUP OLD SESSIONS CRON (Daily at midnight)
+// 🧹 CLEANUP OLD SESSIONS CRON (Daily at midnight Egypt time)
 // ═══════════════════════════════════════════════════════════════
 
 export const startCleanupCron = () => {
-    // Run daily at 00:00
-    cron.schedule('0 0 * * *', async () => {
+    // Run daily at 00:00 Egypt time (22:00 UTC)
+    cron.schedule('0 22 * * *', async () => {
         try {
             await cleanupOldSessions();
         } catch (error) {
@@ -100,22 +101,21 @@ export const startCleanupCron = () => {
 
 const cleanupOldSessions = async () => {
     const TeacherSession = (await import('../models/schema/user/teachersession')).default;
-    
-    // Find active sessions from previous days and mark as cancelled
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(23, 59, 59, 999);
 
+    // ✅ استخدم الـ Helper
+    const { dayStart } = getTodayRange();
+
+    // Find inprogress sessions from previous days
     const result = await TeacherSession.updateMany(
         {
-            status: 'active',
-            date: { $lt: yesterday },
+            status: 'inprogress',
+            date: { $lt: dayStart },
         },
         {
             $set: {
-                status: 'cancelled',
+                status: 'completed',
                 endedAt: new Date(),
-                notes: 'تم إلغاؤها تلقائياً - لم يتم إنهاؤها',
+                notes: 'تم إنهاؤها تلقائياً - لم يتم إنهاؤها يدوياً',
             },
         }
     );

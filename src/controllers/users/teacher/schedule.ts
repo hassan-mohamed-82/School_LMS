@@ -8,6 +8,7 @@ import Attendance from '../../../models/schema/admin/Attendance';
 import Homework from '../../../models/schema/user/homework';
 import { SuccessResponse } from '../../../utils/response';
 import { saveBase64Image } from '../../../utils/handleImages';
+import { getTodayRange, IDateRange } from '../../../utils/date_Egypt';
 
 // ═══════════════════════════════════════════════════════════════
 // 🔧 HELPER: Get Teacher's Active Session (inprogress)
@@ -72,21 +73,14 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
 
-    const now = new Date();
-    const dayOfWeek = now.getDay();
+    // استخدام النوع الموحد
+    const { dayOfWeek, dayName, dateString, currentTime, dayStart, dayEnd }: IDateRange = getTodayRange();
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-
-    // Get today's schedules
+    // Get schedules
     const schedules = await Schedule.find({
         school: schoolId,
         teacher: teacherId,
-        dayOfWeek: dayOfWeek,
+        dayOfWeek,
         status: 'active',
     })
         .populate('grade', 'name nameEn')
@@ -95,82 +89,75 @@ export const getTodaySchedule = async (req: Request, res: Response) => {
         .populate('period', 'name startTime endTime sortOrder')
         .sort({ 'period.sortOrder': 1 });
 
-    // Get today's sessions
+    // Get sessions
     const sessions = await TeacherSession.find({
         school: schoolId,
         teacher: teacherId,
-        date: { $gte: todayStart, $lte: todayEnd },
+        date: { $gte: dayStart, $lte: dayEnd },
     });
 
-    const sessionMap = new Map(
-        sessions.map(s => [s.schedule.toString(), s])
-    );
+    // Create map
+    const sessionMap = new Map();
+    sessions.forEach((session) => {
+        sessionMap.set(session.schedule.toString(), session);
+    });
 
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    // Build periods
+    const periods = schedules.map((schedule) => {
+        const session = sessionMap.get(schedule._id.toString());
+        const period = schedule.period as any;
 
-    // Format response
-    const periods = schedules
-        .sort((a: any, b: any) => (a.period?.sortOrder || 0) - (b.period?.sortOrder || 0))
-        .map(schedule => {
-            const session = sessionMap.get(schedule._id.toString());
-            const period = schedule.period as any;
+        const sessionStatus = session?.status || 'pending';
+        const canStart = sessionStatus === 'pending';
+        const canEnd = sessionStatus === 'inprogress';
 
-            // Session status: pending | inprogress | completed
-            const sessionStatus = session?.status || 'pending';
+        return {
+            scheduleId: schedule._id,
+            grade: schedule.grade,
+            class: schedule.class,
+            subject: schedule.subject,
+            period: {
+                _id: period._id,
+                name: period.name,
+                startTime: period.startTime,
+                endTime: period.endTime,
+            },
+            sessionStatus,
+            canStart,
+            canEnd,
+            sessionId: session?._id || null,
+            sessionData: session
+                ? {
+                      startedAt: session.startedAt,
+                      endedAt: session.endedAt,
+                      duration: session.startedAt
+                          ? Math.round(
+                                ((session.endedAt?.getTime() || Date.now()) -
+                                    session.startedAt.getTime()) /
+                                    60000
+                            )
+                          : null,
+                      attendanceCount: session.attendanceCount,
+                  }
+                : null,
+        };
+    });
 
-            // Actions
-            const canStart = sessionStatus === 'pending';
-            const canEnd = sessionStatus === 'inprogress';
-
-            // Duration
-            let duration = null;
-            if (session?.startedAt && session?.endedAt) {
-                duration = Math.round(
-                    (session.endedAt.getTime() - session.startedAt.getTime()) / 60000
-                );
-            }
-
-            return {
-                scheduleId: schedule._id,
-                grade: schedule.grade,
-                class: schedule.class,
-                subject: schedule.subject,
-                period: {
-                    _id: period?._id,
-                    name: period?.name,
-                    startTime: period?.startTime,
-                    endTime: period?.endTime,
-                },
-                sessionStatus,
-                canStart,
-                canEnd,
-                sessionId: session?._id || null,
-                sessionData: session
-                    ? {
-                          startedAt: session.startedAt,
-                          endedAt: session.endedAt,
-                          duration,
-                          attendanceCount: session.attendanceCount,
-                      }
-                    : null,
-            };
-        });
-
-    // Check for active session
-    const activeSession = sessions.find(s => s.status === 'inprogress');
+    // Active session
+    const activeSession = sessions.find((s) => s.status === 'inprogress');
 
     // Summary
     const summary = {
         total: periods.length,
-        pending: periods.filter(p => p.sessionStatus === 'pending').length,
-        inprogress: periods.filter(p => p.sessionStatus === 'inprogress').length,
-        completed: periods.filter(p => p.sessionStatus === 'completed').length,
+        pending: periods.filter((p) => p.sessionStatus === 'pending').length,
+        inprogress: periods.filter((p) => p.sessionStatus === 'inprogress').length,
+        completed: periods.filter((p) => p.sessionStatus === 'completed').length,
     };
 
     return SuccessResponse(res, {
         dayOfWeek,
-        dayName: dayNames[dayOfWeek],
-        date: now.toISOString().split('T')[0],
+        dayName,
+        date: dateString,
         currentTime,
         summary,
         periods,
