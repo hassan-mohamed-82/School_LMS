@@ -80,6 +80,10 @@ const createStudentGrade = async (req, res) => {
     if (existingGrade) {
         throw new BadRequest_1.BadRequest('درجة الطالب موجودة مسبقاً لهذا الامتحان');
     }
+    const student = await Student_1.default.findById(studentId);
+    if (!student) {
+        throw new Errors_1.NotFound('الطالب غير موجود');
+    }
     // Get exam to validate marks
     const exam = await Exam_1.default.findById(examId);
     if (!exam) {
@@ -183,6 +187,10 @@ const getByStudent = async (req, res) => {
     const { studentId, academicYear } = req.body;
     if (!studentId) {
         throw new BadRequest_1.BadRequest('الطالب مطلوب');
+    }
+    const student = await Student_1.default.findById(studentId);
+    if (!student) {
+        throw new Errors_1.NotFound('الطالب غير موجود');
     }
     const query = { school: schoolId, student: studentId };
     const studentGrades = await StudentGrade_1.default.find(query)

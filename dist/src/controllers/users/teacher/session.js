@@ -90,9 +90,60 @@ const startSession = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
     const { scheduleId } = req.body;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
     // Check if teacher already has inprogress session
-    const existingActive = await getActiveSession(teacherId, schoolId);
+    const existingActive = await teachersession_1.default.findOne({
+        teacher: teacherId,
+        school: schoolId,
+        status: 'inprogress',
+    });
     if (existingActive) {
+        // ✅ لو نفس الحصة اللي شغالة → يرجع بياناتها (يكمل عليها)
+        if (existingActive.schedule.toString() === scheduleId) {
+            // Get students
+            const students = await Student_1.default.find({
+                school: schoolId,
+                classId: existingActive.class,
+                status: 'active',
+            })
+                .select('name nameEn studentCode avatar gender')
+                .sort({ name: 1 });
+            // Get attendance
+            const attendance = await Attendance_1.default.find({
+                session: existingActive._id,
+            });
+            const attendanceMap = new Map(attendance.map(a => [a.student.toString(), a]));
+            const studentsWithAttendance = students.map(student => {
+                const att = attendanceMap.get(student._id.toString());
+                return {
+                    _id: student._id,
+                    name: student.name,
+                    nameEn: student.nameEn,
+                    studentCode: student.studentCode,
+                    avatar: student.avatar,
+                    gender: student.gender,
+                    attendance: att
+                        ? { status: att.status, notes: att.notes }
+                        : null,
+                };
+            });
+            // Populate session
+            await existingActive.populate('class', 'name');
+            await existingActive.populate('grade', 'name nameEn');
+            await existingActive.populate('subject', 'name nameEn');
+            await existingActive.populate('period', 'name startTime endTime');
+            return (0, response_1.SuccessResponse)(res, {
+                session: existingActive,
+                students: studentsWithAttendance,
+                studentsCount: students.length,
+                message: 'تم استرجاع الحصة الشغالة',
+                isResumed: true, // ✅ علشان الفرونت يعرف إنها مش جديدة
+            });
+        }
+        // ❌ لو حصة تانية شغالة → Error
         throw new BadRequest_1.BadRequest('لديك حصة شغالة بالفعل، يجب إنهاؤها أولاً');
     }
     // Get schedule
@@ -110,20 +161,13 @@ const startSession = async (req, res) => {
     if (schedule.dayOfWeek !== today.getDay()) {
         throw new BadRequest_1.BadRequest('هذه الحصة ليست اليوم');
     }
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-    // Check existing session
+    // Check existing session for this schedule today
     let session = await teachersession_1.default.findOne({
         school: schoolId,
         schedule: scheduleId,
         date: { $gte: todayStart, $lte: todayEnd },
     });
     if (session) {
-        if (session.status === 'inprogress') {
-            throw new BadRequest_1.BadRequest('الحصة شغالة بالفعل');
-        }
         if (session.status === 'completed') {
             throw new BadRequest_1.BadRequest('الحصة انتهت بالفعل اليوم');
         }
