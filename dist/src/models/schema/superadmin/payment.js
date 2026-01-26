@@ -1,5 +1,5 @@
 "use strict";
-// src/models/Payment.model.ts
+// src/models/superadmin/SchoolPayment.model.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,8 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Schema
-const paymentSchema = new mongoose_1.Schema({
+const schoolPaymentSchema = new mongoose_1.Schema({
     paymentNumber: {
         type: String,
         unique: true,
@@ -64,12 +63,13 @@ const paymentSchema = new mongoose_1.Schema({
     amount: {
         type: Number,
         required: [true, 'المبلغ مطلوب'],
-        min: 0,
+        min: [1, 'المبلغ يجب أن يكون أكبر من صفر'],
     },
     currency: {
         type: String,
         default: 'EGP',
     },
+    transactionId: String,
     receiptImage: {
         type: String,
         required: [true, 'صورة إيصال الدفع مطلوبة'],
@@ -83,29 +83,20 @@ const paymentSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'SuperAdmin',
     },
-    reviewedAt: {
-        type: Date,
-    },
-    rejectionReason: {
-        type: String,
-    },
-    notes: {
-        type: String,
-    },
-}, {
-    timestamps: true,
-});
-// Generate payment number before save
-paymentSchema.pre('save', async function () {
-    if (!this.paymentNumber) {
-        const count = await mongoose_1.default.model('Payment').countDocuments();
+    reviewedAt: Date,
+    rejectionReason: String,
+    notes: String,
+}, { timestamps: true });
+schoolPaymentSchema.pre('save', async function (next) {
+    if (this.isNew && !this.paymentNumber) {
         const year = new Date().getFullYear();
-        this.paymentNumber = `PAY-${year}-${String(count + 1).padStart(6, '0')}`;
+        const count = await mongoose_1.default.model('SchoolPayment').countDocuments();
+        this.paymentNumber = `SPAY-${year}-${String(count + 1).padStart(6, '0')}`;
     }
+    next();
 });
-// Indexes
-paymentSchema.index({ paymentNumber: 1 });
-paymentSchema.index({ school: 1 });
-paymentSchema.index({ status: 1 });
-paymentSchema.index({ createdAt: -1 });
-exports.default = mongoose_1.default.model('Payment', paymentSchema);
+schoolPaymentSchema.index({ paymentNumber: 1 });
+schoolPaymentSchema.index({ school: 1, status: 1 });
+schoolPaymentSchema.index({ status: 1 });
+schoolPaymentSchema.index({ createdAt: -1 });
+exports.default = mongoose_1.default.model('SchoolPayment', schoolPaymentSchema);

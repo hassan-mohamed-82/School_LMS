@@ -1,5 +1,5 @@
 "use strict";
-// src/models/SubscriptionPlan.model.ts
+// src/models/superadmin/SubscriptionPlan.model.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,47 +35,67 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Schema
+const featureSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    nameEn: { type: String, required: true },
+    included: { type: Boolean, default: true },
+}, { _id: false });
 const subscriptionPlanSchema = new mongoose_1.Schema({
     name: {
         type: String,
-        required: [true, 'اسم الباقة مطلوب'],
+        required: [true, 'اسم الخطة مطلوب'],
         trim: true,
     },
     nameEn: {
         type: String,
+        required: [true, 'اسم الخطة بالإنجليزية مطلوب'],
         trim: true,
     },
+    description: String,
+    descriptionEn: String,
     price: {
         type: Number,
-        required: [true, 'السعر الشهري مطلوب'],
+        required: [true, 'السعر مطلوب'],
         min: 0,
+    },
+    currency: {
+        type: String,
+        default: 'EGP',
+    },
+    duration: {
+        type: Number,
+        required: true,
+        default: 365,
     },
     maxStudents: {
         type: Number,
-        required: [true, 'الحد الأقصى للطلاب مطلوب'],
-        min: 1,
+        required: true,
+        default: 500,
     },
     maxTeachers: {
         type: Number,
-        min: 1,
+        required: true,
+        default: 50,
     },
     maxAdmins: {
         type: Number,
-        default: 2,
-        min: 1,
+        required: true,
+        default: 5,
     },
-    features: [{
-            type: String,
-        }],
+    features: [featureSchema],
+    sortOrder: {
+        type: Number,
+        default: 0,
+    },
+    isPopular: {
+        type: Boolean,
+        default: false,
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],
         default: 'active',
     },
-}, {
-    timestamps: true,
-});
-// Indexes
-subscriptionPlanSchema.index({ status: 1 });
+}, { timestamps: true });
+subscriptionPlanSchema.index({ status: 1, sortOrder: 1 });
 exports.default = mongoose_1.default.model('SubscriptionPlan', subscriptionPlanSchema);

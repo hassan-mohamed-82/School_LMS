@@ -72,8 +72,7 @@ const studentFeeSchema = new mongoose_1.Schema({
         required: [true, 'الطالب مطلوب'],
     },
     feeCategory: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'FeeCategory',
+        type: String,
         required: [true, 'فئة المصاريف مطلوبة'],
     },
     academicYear: {

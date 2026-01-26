@@ -9,6 +9,7 @@ import Attendance from "../../../models/schema/admin/Attendance";
 import Homework from "../../../models/schema/user/homework";
 import { saveBase64Image } from "../../../utils/handleImages";
 import { getTodayRange, getDateRange } from "../../../utils/date_Egypt";
+import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
 
 // ═══════════════════════════════════════════════════════════════
 // 🔧 HELPER: Get Teacher's Active Session
@@ -390,62 +391,67 @@ export const cancelSession = async (req: Request, res: Response) => {
 // 📚 UPLOAD HOMEWORK (رفع واجب)
 // ═══════════════════════════════════════════════════════════════
 
+const getFileType = (mimetype: string): string => {
+  if (mimetype === 'application/pdf') {
+    return 'pdf';
+  } else if (mimetype.startsWith('image/')) {
+    return 'image';
+  } else if (
+    mimetype === 'application/msword' ||
+    mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    return 'word';
+  }
+  return 'other';
+};
+
 export const uploadHomework = async (req: Request, res: Response) => {
-    const schoolId = req.user?.schoolId;
-    const teacherId = req.user?.id;
-    const { title, description, file, dueDate } = req.body;
+  const schoolId = req.user?.schoolId;
+  const teacherId = req.user?.id;
+  const { title, description, dueDate } = req.body;
 
-    const session = await getActiveSession(teacherId!, schoolId!);
+  const session = await getActiveSession(teacherId!, schoolId!);
 
-    if (!session) {
-        throw new BadRequest('لا توجد حصة شغالة');
-    }
+  if (!session) {
+    throw new BadRequest('لا توجد حصة شغالة');
+  }
 
-    let fileUrl = null;
-    let fileType = null;
+  let fileUrl = null;
+  let fileType = null;
 
-    if (file) {
-        const uniqueId = new Date().getTime().toString();
-        fileUrl = await saveBase64Image(file, uniqueId, req, 'homework');
+  if (req.file) {
+    // رفع الـ buffer على Cloudinary
+    fileUrl = await uploadBufferToCloudinary(req.file.buffer, 'homework');
+    fileType = getFileType(req.file.mimetype);
+  }
 
-        if (file.startsWith('data:application/pdf')) {
-            fileType = 'pdf';
-        } else if (file.startsWith('data:image')) {
-            fileType = 'image';
-        } else if (file.includes('word') || file.includes('document')) {
-            fileType = 'word';
-        } else {
-            fileType = 'other';
-        }
-    }
+  const homeworkRecord = await Homework.create({
+    school: schoolId,
+    teacher: teacherId,
+    session: session._id,
+    class: session.class,
+    grade: session.grade,
+    subject: session.subject,
+    title,
+    description: description || null,
+    file: fileUrl,
+    fileType,
+    dueDate: dueDate ? new Date(dueDate) : null,
+    status: 'active',
+  });
 
-    const homeworkRecord = await Homework.create({
-        school: schoolId,
-        teacher: teacherId,
-        session: session._id,
-        class: session.class,
-        grade: session.grade,
-        subject: session.subject,
-        title,
-        description: description || null,
-        file: fileUrl,
-        fileType,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        status: 'active',
-    });
+  await homeworkRecord.populate('class', 'name');
+  await homeworkRecord.populate('grade', 'name nameEn');
+  await homeworkRecord.populate('subject', 'name nameEn');
 
-    await homeworkRecord.populate('class', 'name');
-    await homeworkRecord.populate('grade', 'name nameEn');
-    await homeworkRecord.populate('subject', 'name nameEn');
-
-    return SuccessResponse(
-        res,
-        {
-            homework: homeworkRecord,
-            message: 'تم رفع الواجب بنجاح',
-        },
-        201
-    );
+  return SuccessResponse(
+    res,
+    {
+      homework: homeworkRecord,
+      message: 'تم رفع الواجب بنجاح',
+    },
+    201
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════

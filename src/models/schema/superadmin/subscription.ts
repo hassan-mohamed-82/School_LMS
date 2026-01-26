@@ -1,112 +1,84 @@
-// src/models/Subscription.model.ts
+// src/models/superadmin/Subscription.model.ts
 
 import mongoose, { Document, Schema } from 'mongoose';
 
-// Types
+export type SubscriptionStatus = 'pending' | 'active' | 'expired' | 'suspended' | 'cancelled';
+
 export interface ISubscription extends Document {
-  school: mongoose.Types.ObjectId;
-  plan: mongoose.Types.ObjectId;
-  startDate: Date;
-  endDate: Date;
-  amount: number;
-  discount: number;
-  totalAmount: number;
-  currency: string;
-  promoCode?: mongoose.Types.ObjectId;
-  status: 'active' | 'expired' | 'cancelled' | 'pending';
-  autoRenew: boolean;
-  renewalReminders: boolean;
-  createdBy: mongoose.Types.ObjectId;
-  cancelledAt?: Date;
-  cancelledBy?: mongoose.Types.ObjectId;
-  cancelReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
+    school: mongoose.Types.ObjectId;
+    plan: mongoose.Types.ObjectId;
+    startDate: Date;
+    endDate: Date;
+    price: number;
+    discount: number;
+    finalAmount: number;
+    paidAmount: number;
+    remainingAmount: number;
+    status: SubscriptionStatus;
+    activatedAt?: Date;
+    activatedBy?: mongoose.Types.ObjectId;
+    notes?: string;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-// Schema
 const subscriptionSchema = new Schema<ISubscription>(
-  {
-    school: {
-      type: Schema.Types.ObjectId,
-      ref: 'School',
-      required: [true, 'المدرسة مطلوبة'],
+    {
+        school: {
+            type: Schema.Types.ObjectId,
+            ref: 'School',
+            required: [true, 'المدرسة مطلوبة'],
+        },
+        plan: {
+            type: Schema.Types.ObjectId,
+            ref: 'SubscriptionPlan',
+            required: [true, 'خطة الاشتراك مطلوبة'],
+        },
+        startDate: {
+            type: Date,
+            required: [true, 'تاريخ البداية مطلوب'],
+        },
+        endDate: {
+            type: Date,
+            required: [true, 'تاريخ النهاية مطلوب'],
+        },
+        price: {
+            type: Number,
+            required: true,
+        },
+        discount: {
+            type: Number,
+            default: 0,
+        },
+        finalAmount: {
+            type: Number,
+            required: true,
+        },
+        paidAmount: {
+            type: Number,
+            default: 0,
+        },
+        remainingAmount: {
+            type: Number,
+            required: true,
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'active', 'expired', 'suspended', 'cancelled'],
+            default: 'pending',
+        },
+        activatedAt: Date,
+        activatedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'SuperAdmin',
+        },
+        notes: String,
     },
-    plan: {
-      type: Schema.Types.ObjectId,
-      ref: 'SubscriptionPlan',
-      required: [true, 'الباقة مطلوبة'],
-    },
-    startDate: {
-      type: Date,
-      required: [true, 'تاريخ البداية مطلوب'],
-    },
-    endDate: {
-      type: Date,
-      required: [true, 'تاريخ النهاية مطلوب'],
-    },
-    amount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    discount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    currency: {
-      type: String,
-      default: 'EGP',
-    },
-    promoCode: {
-      type: Schema.Types.ObjectId,
-      ref: 'PromoCode',
-    },
-    status: {
-      type: String,
-      enum: ['active', 'expired', 'cancelled', 'pending'],
-      default: 'pending',
-    },
-    autoRenew: {
-      type: Boolean,
-      default: false,
-    },
-    renewalReminders: {
-      type: Boolean,
-      default: true,
-    },
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'SuperAdmin',
-      required: true,
-    },
-    cancelledAt: {
-      type: Date,
-    },
-    cancelledBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'SuperAdmin',
-    },
-    cancelReason: {
-      type: String,
-    },
-  },
-  {
-    timestamps: true,
-  }
+    { timestamps: true }
 );
 
-// Indexes
-subscriptionSchema.index({ school: 1 });
-subscriptionSchema.index({ plan: 1 });
+subscriptionSchema.index({ school: 1, status: 1 });
 subscriptionSchema.index({ status: 1 });
 subscriptionSchema.index({ endDate: 1 });
-subscriptionSchema.index({ school: 1, status: 1 });
 
 export default mongoose.model<ISubscription>('Subscription', subscriptionSchema);

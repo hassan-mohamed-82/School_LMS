@@ -12,8 +12,8 @@ const Student_1 = __importDefault(require("../../../models/schema/admin/Student"
 const response_1 = require("../../../utils/response");
 const Attendance_1 = __importDefault(require("../../../models/schema/admin/Attendance"));
 const homework_1 = __importDefault(require("../../../models/schema/user/homework"));
-const handleImages_1 = require("../../../utils/handleImages");
 const date_Egypt_1 = require("../../../utils/date_Egypt");
+const cloudinary_1 = require("../../../utils/cloudinary");
 // ═══════════════════════════════════════════════════════════════
 // 🔧 HELPER: Get Teacher's Active Session
 // ═══════════════════════════════════════════════════════════════
@@ -328,31 +328,33 @@ exports.cancelSession = cancelSession;
 // ═══════════════════════════════════════════════════════════════
 // 📚 UPLOAD HOMEWORK (رفع واجب)
 // ═══════════════════════════════════════════════════════════════
+const getFileType = (mimetype) => {
+    if (mimetype === 'application/pdf') {
+        return 'pdf';
+    }
+    else if (mimetype.startsWith('image/')) {
+        return 'image';
+    }
+    else if (mimetype === 'application/msword' ||
+        mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        return 'word';
+    }
+    return 'other';
+};
 const uploadHomework = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { title, description, file, dueDate } = req.body;
+    const { title, description, dueDate } = req.body;
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
         throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
     }
     let fileUrl = null;
     let fileType = null;
-    if (file) {
-        const uniqueId = new Date().getTime().toString();
-        fileUrl = await (0, handleImages_1.saveBase64Image)(file, uniqueId, req, 'homework');
-        if (file.startsWith('data:application/pdf')) {
-            fileType = 'pdf';
-        }
-        else if (file.startsWith('data:image')) {
-            fileType = 'image';
-        }
-        else if (file.includes('word') || file.includes('document')) {
-            fileType = 'word';
-        }
-        else {
-            fileType = 'other';
-        }
+    if (req.file) {
+        // رفع الـ buffer على Cloudinary
+        fileUrl = await (0, cloudinary_1.uploadBufferToCloudinary)(req.file.buffer, 'homework');
+        fileType = getFileType(req.file.mimetype);
     }
     const homeworkRecord = await homework_1.default.create({
         school: schoolId,

@@ -1,5 +1,5 @@
 "use strict";
-// src/models/Invoice.model.ts
+// src/models/superadmin/Invoice.model.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Schema
 const invoiceSchema = new mongoose_1.Schema({
     invoiceNumber: {
         type: String,
@@ -46,75 +45,52 @@ const invoiceSchema = new mongoose_1.Schema({
         ref: 'School',
         required: [true, 'المدرسة مطلوبة'],
     },
-    subscriptionPlan: {
+    subscription: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'SubscriptionPlan',
-        required: [true, 'الباقة مطلوبة'],
+        ref: 'Subscription',
+        required: [true, 'الاشتراك مطلوب'],
     },
     amount: {
         type: Number,
-        required: [true, 'المبلغ مطلوب'],
-        min: 0,
+        required: true,
     },
     discount: {
         type: Number,
         default: 0,
-        min: 0,
     },
-    totalAmount: {
+    finalAmount: {
         type: Number,
-        required: [true, 'المبلغ الإجمالي مطلوب'],
-        min: 0,
+        required: true,
     },
-    currency: {
-        type: String,
-        default: 'EGP',
+    paidAmount: {
+        type: Number,
+        default: 0,
+    },
+    remainingAmount: {
+        type: Number,
+        required: true,
+    },
+    dueDate: {
+        type: Date,
+        required: [true, 'تاريخ الاستحقاق مطلوب'],
     },
     status: {
         type: String,
-        enum: ['pending', 'paid', 'cancelled', 'refunded'],
+        enum: ['pending', 'partial', 'paid', 'cancelled'],
         default: 'pending',
     },
-    paymentMethod: {
-        type: String,
-        enum: ['cash', 'online', 'bank_transfer', 'check'],
-    },
-    transactionId: {
-        type: String,
-    },
-    periodStart: {
-        type: Date,
-        required: [true, 'تاريخ بداية الفترة مطلوب'],
-    },
-    periodEnd: {
-        type: Date,
-        required: [true, 'تاريخ نهاية الفترة مطلوب'],
-    },
-    paidAt: {
-        type: Date,
-    },
-    notes: {
-        type: String,
-    },
-    createdBy: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'SuperAdmin',
-        required: true,
-    },
-}, {
-    timestamps: true,
-});
-// Generate invoice number before save
-invoiceSchema.pre('save', async function () {
-    if (!this.invoiceNumber) {
-        const count = await mongoose_1.default.model('Invoice').countDocuments();
+    notes: String,
+}, { timestamps: true });
+invoiceSchema.pre('save', async function (next) {
+    if (this.isNew && !this.invoiceNumber) {
         const year = new Date().getFullYear();
+        const count = await mongoose_1.default.model('Invoice').countDocuments();
         this.invoiceNumber = `INV-${year}-${String(count + 1).padStart(6, '0')}`;
     }
+    next();
 });
-// Indexes
 invoiceSchema.index({ invoiceNumber: 1 });
-invoiceSchema.index({ school: 1 });
+invoiceSchema.index({ school: 1, status: 1 });
 invoiceSchema.index({ status: 1 });
-invoiceSchema.index({ createdAt: -1 });
+invoiceSchema.index({ dueDate: 1 });
 exports.default = mongoose_1.default.model('Invoice', invoiceSchema);

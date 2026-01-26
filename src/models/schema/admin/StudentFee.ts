@@ -16,7 +16,7 @@ export interface IInstallment {
 export interface IStudentFee extends Document {
     school: mongoose.Types.ObjectId;
     student: mongoose.Types.ObjectId;
-    feeCategory: mongoose.Types.ObjectId;
+    feeCategory: string;
     academicYear: string;
     totalAmount: number;
     discount: number;
@@ -71,8 +71,7 @@ const studentFeeSchema = new Schema<IStudentFee>(
             required: [true, 'الطالب مطلوب'],
         },
         feeCategory: {
-            type: Schema.Types.ObjectId,
-            ref: 'FeeCategory',
+           type:String,
             required: [true, 'فئة المصاريف مطلوبة'],
         },
         academicYear: {

@@ -17,6 +17,7 @@ import {
     endSessionSchema,
     uploadHomeworkSchema,
 } from "../../../validation/users/teacher/session";
+import { upload } from "../../../utils/multer";
 
 const router = Router();
 
@@ -34,8 +35,12 @@ router.post('/start', validate(startSessionSchema), catchAsync(startSession));
 router.post('/attendance', validate(recordAttendanceSchema), catchAsync(recordAttendance));
 
 // رفع واجب (بدون IDs)
-router.post('/homework', validate(uploadHomeworkSchema), catchAsync(uploadHomework));
-
+router.post(
+  '/homework',
+  upload.single('file'),
+  validate(uploadHomeworkSchema),
+  catchAsync(uploadHomework)
+);
 // إنهاء الحصة (بدون sessionId)
 router.post('/end', validate(endSessionSchema), catchAsync(endSession));
 
