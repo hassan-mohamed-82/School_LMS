@@ -344,7 +344,6 @@ const getFileType = (mimetype) => {
 const uploadHomework = async (req, res) => {
     const schoolId = req.user?.schoolId;
     const teacherId = req.user?.id;
-    const { title, description, dueDate } = req.body;
     const session = await getActiveSession(teacherId, schoolId);
     if (!session) {
         throw new BadRequest_1.BadRequest('لا توجد حصة شغالة');
@@ -363,11 +362,8 @@ const uploadHomework = async (req, res) => {
         class: session.class,
         grade: session.grade,
         subject: session.subject,
-        title,
-        description: description || null,
         file: fileUrl,
         fileType,
-        dueDate: dueDate ? new Date(dueDate) : null,
         status: 'active',
     });
     await homeworkRecord.populate('class', 'name');

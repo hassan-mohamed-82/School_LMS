@@ -408,7 +408,6 @@ const getFileType = (mimetype: string): string => {
 export const uploadHomework = async (req: Request, res: Response) => {
   const schoolId = req.user?.schoolId;
   const teacherId = req.user?.id;
-  const { title, description, dueDate } = req.body;
 
   const session = await getActiveSession(teacherId!, schoolId!);
 
@@ -432,11 +431,8 @@ export const uploadHomework = async (req: Request, res: Response) => {
     class: session.class,
     grade: session.grade,
     subject: session.subject,
-    title,
-    description: description || null,
     file: fileUrl,
     fileType,
-    dueDate: dueDate ? new Date(dueDate) : null,
     status: 'active',
   });
 
