@@ -392,65 +392,68 @@ export const cancelSession = async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════
 
 const getFileType = (mimetype: string): string => {
-  if (mimetype === 'application/pdf') {
-    return 'pdf';
-  } else if (mimetype.startsWith('image/')) {
-    return 'image';
-  } else if (
-    mimetype === 'application/msword' ||
-    mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ) {
-    return 'word';
-  }
-  return 'other';
+    if (mimetype === 'application/pdf') {
+        return 'pdf';
+    } else if (mimetype.startsWith('image/')) {
+        return 'image';
+    } else if (
+        mimetype === 'application/msword' ||
+        mimetype ===
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+        return 'word';
+    }
+    return 'other';
 };
 
 export const uploadHomework = async (req: Request, res: Response) => {
-  const schoolId = req.user?.schoolId;
-  const teacherId = req.user?.id;
-  const { title, description, dueDate } = req.body;
-  const session = await getActiveSession(teacherId!, schoolId!);
+    const schoolId = req.user?.schoolId;
+    const teacherId = req.user?.id;
+    const { title, description, dueDate } = req.body;
 
-  if (!session) {
-    throw new BadRequest('لا توجد حصة شغالة');
-  }
+    const session = await getActiveSession(teacherId!, schoolId!);
 
-  let fileUrl = null;
-  let fileType = null;
+    if (!session) {
+        throw new BadRequest('لا توجد حصة شغالة');
+    }
 
-  if (req.file) {
-    // رفع الـ buffer على Cloudinary
-    fileUrl = await uploadBufferToCloudinary(req.file.buffer, 'homework');
-    fileType = getFileType(req.file.mimetype);
-  }
+    let fileUrl = null;
+    let fileType = null;
 
-  const homeworkRecord = await Homework.create({
-    school: schoolId,
-    teacher: teacherId,
-    session: session._id,
-    class: session.class,
-    grade: session.grade,
-    subject: session.subject,
-    title,
-    description: description || null,
-    dueDate: dueDate || null,
-    file: fileUrl,
-    fileType,
-    status: 'active',
-  });
+    if (req.file) {
+        fileUrl = await uploadBufferToCloudinary(req.file.buffer, 'homework');
+        fileType = getFileType(req.file.mimetype);
+    }
 
-  await homeworkRecord.populate('class', 'name');
-  await homeworkRecord.populate('grade', 'name nameEn');
-  await homeworkRecord.populate('subject', 'name nameEn');
+    const homeworkRecord = await Homework.create({
+        school: schoolId,
+        teacher: teacherId,
+        session: session._id,
+        class: session.class,
+        grade: session.grade,
+        subject: session.subject,
+        title: title || null,
+        description: description || null,
+        dueDate: dueDate || null,
+        file: fileUrl,
+        fileType,
+        status: 'active',
+    });
 
-  return SuccessResponse(
-    res,
-    {
-      homework: homeworkRecord,
-      message: 'تم رفع الواجب بنجاح',
-    },
-    201
-  );
+    await homeworkRecord.populate([
+        { path: 'class', select: 'name' },
+        { path: 'grade', select: 'name nameEn' },
+        { path: 'subject', select: 'name nameEn' },
+    ]);
+
+    return SuccessResponse(
+        res,
+        {
+            homework: homeworkRecord,
+            message: 'تم رفع الواجب بنجاح',
+        },
+        201
+    );
 };
 
 // ═══════════════════════════════════════════════════════════════

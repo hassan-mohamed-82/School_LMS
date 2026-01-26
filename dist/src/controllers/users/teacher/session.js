@@ -336,7 +336,8 @@ const getFileType = (mimetype) => {
         return 'image';
     }
     else if (mimetype === 'application/msword' ||
-        mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        mimetype ===
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         return 'word';
     }
     return 'other';
@@ -352,7 +353,6 @@ const uploadHomework = async (req, res) => {
     let fileUrl = null;
     let fileType = null;
     if (req.file) {
-        // رفع الـ buffer على Cloudinary
         fileUrl = await (0, cloudinary_1.uploadBufferToCloudinary)(req.file.buffer, 'homework');
         fileType = getFileType(req.file.mimetype);
     }
@@ -363,16 +363,18 @@ const uploadHomework = async (req, res) => {
         class: session.class,
         grade: session.grade,
         subject: session.subject,
-        title,
+        title: title || null,
         description: description || null,
         dueDate: dueDate || null,
         file: fileUrl,
         fileType,
         status: 'active',
     });
-    await homeworkRecord.populate('class', 'name');
-    await homeworkRecord.populate('grade', 'name nameEn');
-    await homeworkRecord.populate('subject', 'name nameEn');
+    await homeworkRecord.populate([
+        { path: 'class', select: 'name' },
+        { path: 'grade', select: 'name nameEn' },
+        { path: 'subject', select: 'name nameEn' },
+    ]);
     return (0, response_1.SuccessResponse)(res, {
         homework: homeworkRecord,
         message: 'تم رفع الواجب بنجاح',

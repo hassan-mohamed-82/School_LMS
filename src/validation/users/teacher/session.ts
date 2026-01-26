@@ -40,8 +40,8 @@ export const endSessionSchema = Joi.object({
 
 // رفع واجب - بدون IDs
 export const uploadHomeworkSchema = Joi.object({
-    title: Joi.string().min(3),
+    title: Joi.string().min(3).optional().allow('', null),
     description: Joi.string().optional().allow('', null),
     dueDate: Joi.date().optional().allow(null),
-    file: Joi.string().optional().allow('', null),
+    file: Joi.any().optional(), // عشان ده هييجي من multer مش من body
 });

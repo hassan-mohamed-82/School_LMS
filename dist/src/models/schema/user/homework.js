@@ -54,6 +54,13 @@ const homeworkSchema = new mongoose_1.Schema({
         ref: 'Class',
         required: true,
     },
+    // ⬇️ ضيف ده ⬇️
+    grade: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Grade',
+        required: true,
+    },
+    // ⬆️ ضيف ده ⬆️
     subject: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Subject',

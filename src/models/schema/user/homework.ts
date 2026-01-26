@@ -38,6 +38,13 @@ const homeworkSchema = new Schema<IHomework>(
             ref: 'Class',
             required: true,
         },
+        // ⬇️ ضيف ده ⬇️
+        grade: {
+            type: Schema.Types.ObjectId,
+            ref: 'Grade',
+            required: true,
+        },
+        // ⬆️ ضيف ده ⬆️
         subject: {
             type: Schema.Types.ObjectId,
             ref: 'Subject',
@@ -71,6 +78,5 @@ const homeworkSchema = new Schema<IHomework>(
         timestamps: true,
     }
 );
-
 
 export default mongoose.model<IHomework>('Homework', homeworkSchema);

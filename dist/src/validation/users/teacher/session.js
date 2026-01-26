@@ -40,8 +40,8 @@ exports.endSessionSchema = joi_1.default.object({
 });
 // رفع واجب - بدون IDs
 exports.uploadHomeworkSchema = joi_1.default.object({
-    title: joi_1.default.string().min(3),
+    title: joi_1.default.string().min(3).optional().allow('', null),
     description: joi_1.default.string().optional().allow('', null),
     dueDate: joi_1.default.date().optional().allow(null),
-    file: joi_1.default.string().optional().allow('', null),
+    file: joi_1.default.any().optional(), // عشان ده هييجي من multer مش من body
 });
