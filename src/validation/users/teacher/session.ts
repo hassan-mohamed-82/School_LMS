@@ -40,10 +40,7 @@ export const endSessionSchema = Joi.object({
 
 // رفع واجب - بدون IDs
 export const uploadHomeworkSchema = Joi.object({
-    title: Joi.string().required().min(3).messages({
-        'any.required': 'عنوان الواجب مطلوب',
-        'string.min': 'عنوان الواجب يجب أن يكون 3 أحرف على الأقل',
-    }),
+    title: Joi.string().min(3),
     description: Joi.string().optional().allow('', null),
     dueDate: Joi.date().optional().allow(null),
     file: Joi.string().optional().allow('', null),

@@ -40,10 +40,7 @@ exports.endSessionSchema = joi_1.default.object({
 });
 // رفع واجب - بدون IDs
 exports.uploadHomeworkSchema = joi_1.default.object({
-    title: joi_1.default.string().required().min(3).messages({
-        'any.required': 'عنوان الواجب مطلوب',
-        'string.min': 'عنوان الواجب يجب أن يكون 3 أحرف على الأقل',
-    }),
+    title: joi_1.default.string().min(3),
     description: joi_1.default.string().optional().allow('', null),
     dueDate: joi_1.default.date().optional().allow(null),
     file: joi_1.default.string().optional().allow('', null),
